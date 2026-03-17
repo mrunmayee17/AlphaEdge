@@ -15,9 +15,6 @@ RUN pip install --no-cache-dir -e "./backend[test]"
 # Copy alpha model code (legacy architecture reference)
 COPY alpha_model/ ./alpha_model/
 
-# Copy .env handling
-COPY .env .env
-
 # HuggingFace model cache directory
 ENV HF_HOME=/app/.hf_cache
 
