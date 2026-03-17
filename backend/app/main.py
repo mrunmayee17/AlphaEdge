@@ -48,13 +48,17 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("Nemotron API health check failed — check API key and endpoint")
     logger.info("Nemotron API: OK")
 
-    # 3. Yahoo Finance (quick check)
+    # 3. Yahoo Finance (non-fatal — rate limits on cloud IPs are common)
     logger.info("Checking Yahoo Finance...")
     app.state.yahoo_finance = YahooFinanceService()
-    test_info = app.state.yahoo_finance.get_ticker_info("AAPL")
-    if not test_info.get("sector"):
-        raise RuntimeError("Yahoo Finance returned no data for AAPL")
-    logger.info("Yahoo Finance: OK")
+    try:
+        test_info = app.state.yahoo_finance.get_ticker_info("AAPL")
+        if not test_info.get("sector"):
+            logger.warning("Yahoo Finance returned no data for AAPL — may be rate limited")
+        else:
+            logger.info("Yahoo Finance: OK")
+    except Exception as e:
+        logger.warning(f"Yahoo Finance startup check failed (non-fatal): {e}")
 
     # 4. Brave Search
     logger.info("Checking Brave Search...")
