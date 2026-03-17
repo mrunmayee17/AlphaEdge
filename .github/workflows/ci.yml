@@ -62,7 +62,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: cd frontend && npm ci
+        run: cd frontend && rm -rf node_modules package-lock.json && npm install
 
       - name: Type check
         run: cd frontend && npx tsc --noEmit
