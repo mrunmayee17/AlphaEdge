@@ -1,7 +1,7 @@
 """Yahoo Finance service — replaces Bloomberg for all price + fundamental data."""
 
 import logging
-from typing import Optional
+import time
 
 import pandas as pd
 import yfinance as yf
@@ -90,21 +90,39 @@ class YahooFinanceService:
         display_name = info.get("shortName") or info.get("longName") or upper
         return upper, display_name
 
-    def get_price_history(self, ticker: str, start: str, end: str) -> pd.DataFrame:
-        """OHLCV daily data."""
-        df = yf.download(ticker, start=start, end=end, progress=False)
-        if df.empty:
-            raise ValueError(f"No price data for {ticker} from {start} to {end}")
-        return df
+    def get_price_history(self, ticker: str, start: str, end: str, retries: int = 3) -> pd.DataFrame:
+        """OHLCV daily data with retry for rate limits."""
+        for attempt in range(retries):
+            try:
+                df = yf.download(ticker, start=start, end=end, progress=False)
+                if df.empty:
+                    raise ValueError(f"No price data for {ticker} from {start} to {end}")
+                return df
+            except Exception as e:
+                if "Rate" in str(e) and attempt < retries - 1:
+                    wait = 2 ** (attempt + 1)
+                    logger.warning(f"Yahoo Finance rate limited, retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise
 
-    def get_ticker_info(self, ticker: str) -> dict:
-        """Cached ticker.info — reduces API calls."""
+    def get_ticker_info(self, ticker: str, retries: int = 3) -> dict:
+        """Cached ticker.info with retry for rate limits."""
         if ticker in _info_cache:
             return _info_cache[ticker]
-        t = yf.Ticker(ticker)
-        info = t.info
-        _info_cache[ticker] = info
-        return info
+        for attempt in range(retries):
+            try:
+                t = yf.Ticker(ticker)
+                info = t.info
+                _info_cache[ticker] = info
+                return info
+            except Exception as e:
+                if "Rate" in str(e) and attempt < retries - 1:
+                    wait = 2 ** (attempt + 1)
+                    logger.warning(f"Yahoo Finance rate limited, retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise
 
     def get_sector_etf(self, ticker: str) -> str:
         """Look up sector ETF for a given ticker."""
