@@ -30,7 +30,7 @@ jobs:
       - name: Build
         run: cd frontend && npm run build
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_URL: https://alpha-edge-api-8bd3.onrender.com/api/v1
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
