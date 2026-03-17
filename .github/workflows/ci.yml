@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -e "./backend[test,dev]"
+
+      - name: Lint with ruff
+        run: ruff check backend/
+
+      - name: Unit tests (no external APIs)
+        run: pytest backend/tests/ -v -m "not integration" --cov=backend/app --cov-report=xml
+        env:
+          REDIS_URL: redis://localhost:6379
+          NVIDIA_API_KEY: "test-key"
+          BRAVE_API_KEY: "test-key"
+          FRED_API_KEY: "test-key"
+          BRIGHTDATA_API_KEY: "test-key"
+
+      - name: Integration tests (requires API keys)
+        if: github.event_name == 'push'
+        run: pytest backend/tests/ -v -m "integration" --cov=backend/app --cov-report=xml
+        env:
+          REDIS_URL: redis://localhost:6379
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Type check
+        run: cd frontend && npx tsc --noEmit
+
+      - name: Build
+        run: cd frontend && npm run build
+
+      - name: Test
+        run: cd frontend && npx vitest run --passWithNoTests

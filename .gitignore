@@ -1,0 +1,59 @@
+# Environment
+.env
+.env.*
+!.env.example
+.venv/
+.test_env/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Local history
+.history/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Models (large binary files)
+models/*.pt
+models/*.pth
+models/*.onnx
+
+# Data
+data/raw/
+data/processed/
+alpha_model/data/raw/
+alpha_model/data/processed/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Redis
+dump.rdb
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log
+
+# W&B
+wandb/
+
+# Docker
+appendonlydir/
+
+# Colab artifacts
+*.zip
