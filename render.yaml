@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: alpha-edge-api
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: alpha-edge-redis
+          type: redis
+          property: connectionString
+      - key: NVIDIA_BASE_URL
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_MODEL
+        sync: false
+      - key: BRAVE_API_KEY
+        sync: false
+      - key: BRIGHTDATA_API_KEY
+        sync: false
+      - key: BRIGHTDATA_DATASET_ID
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+
+  - type: redis
+    name: alpha-edge-redis
+    plan: free
+    ipAllowList: []

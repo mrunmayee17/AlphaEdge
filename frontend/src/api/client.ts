@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api/v1' });
+const BACKEND_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const api = axios.create({ baseURL: BACKEND_URL });
 
 export async function startAnalysis(ticker: string) {
   const { data } = await api.post('/analysis', { ticker });

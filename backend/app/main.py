@@ -89,14 +89,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="BAM — Investment Committee API",
+    title="Alpha Edge — Investment Committee API",
     version="0.1.0",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://mrunmayee17.github.io",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -29,9 +29,17 @@ export class AnalysisWebSocket {
     this.analysisId = analysisId;
     this.reconnectAttempts = 0;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const url = `${protocol}//${host}/api/v1/ws/analysis/${analysisId}`;
+    const backendUrl = import.meta.env.VITE_API_URL || '';
+    let url: string;
+    if (backendUrl) {
+      // External backend: convert https://foo.com/api/v1 → wss://foo.com/api/v1/ws/...
+      const wsBase = backendUrl.replace(/^http/, 'ws');
+      url = `${wsBase}/ws/analysis/${analysisId}`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      url = `${protocol}//${host}/api/v1/ws/analysis/${analysisId}`;
+    }
 
     try {
       this.ws = new WebSocket(url);
