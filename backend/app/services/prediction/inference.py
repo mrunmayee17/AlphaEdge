@@ -48,13 +48,25 @@ def _fetch_returns(ticker: str, context_length: int = 512) -> np.ndarray:
     """Fetch recent daily close-price returns for a ticker.
 
     Returns a 1-D numpy array of daily log-returns (last `context_length` days).
+    Uses retry logic to handle Yahoo Finance rate limits on cloud IPs.
     """
     import yfinance as yf
 
     end = date.today()
     start = end - timedelta(days=int(context_length * 1.8))  # buffer for non-trading days
 
-    df = yf.download(ticker, start=str(start), end=str(end), progress=False)
+    for attempt in range(3):
+        try:
+            df = yf.download(ticker, start=str(start), end=str(end), progress=False)
+            break
+        except Exception as e:
+            if "Rate" in str(e) and attempt < 2:
+                wait = 2 ** (attempt + 1)
+                logger.warning(f"Yahoo Finance rate limited in inference, retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                raise
+
     if df.empty or len(df) < context_length:
         raise ValueError(f"Insufficient price data for {ticker}: {len(df)} rows (need {context_length})")
 

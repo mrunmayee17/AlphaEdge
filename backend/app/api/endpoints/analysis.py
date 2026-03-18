@@ -116,13 +116,23 @@ async def _run_pipeline(analysis_id: str, state: CommitteeState, app):
 
                 # Resolve ticker (e.g. CL → CL=F "WTI Crude Oil Futures")
                 raw_ticker = state["ticker"]
-                ticker, asset_name = yf_svc.resolve_ticker(raw_ticker)
+                try:
+                    ticker, asset_name = yf_svc.resolve_ticker(raw_ticker)
+                except Exception as e:
+                    logger.warning(f"Yahoo Finance resolve failed (rate limit?): {e}")
+                    ticker = raw_ticker
+                    asset_name = raw_ticker
                 state["ticker"] = ticker
                 state["asset_name"] = asset_name
 
-                sector_etf = yf_svc.get_sector_etf(ticker)
-                info = yf_svc.get_ticker_info(ticker)
-                sector = info.get("sector", "Unknown")
+                try:
+                    sector_etf = yf_svc.get_sector_etf(ticker)
+                    info = yf_svc.get_ticker_info(ticker)
+                    sector = info.get("sector", "Unknown")
+                except Exception as e:
+                    logger.warning(f"Yahoo Finance info failed (rate limit?): {e}")
+                    sector_etf = "SPY"
+                    sector = "Unknown"
 
                 # Try real model inference, fall back to placeholder
                 alpha_pred = await _try_model_inference(ticker, sector, sector_etf, app)
