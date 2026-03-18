@@ -4,7 +4,7 @@ import type { AnalysisStatus } from '../types';
 const STATUS_LABELS: Record<AnalysisStatus, { label: string; color: string }> = {
   idle: { label: 'READY', color: 'var(--text-muted)' },
   pending: { label: 'PENDING...', color: 'var(--accent-blue)' },
-  predicting: { label: 'RUNNING PATCHTST...', color: 'var(--accent-blue)' },
+  predicting: { label: 'RUNNING CHRONOS-2...', color: 'var(--accent-blue)' },
   round_1: { label: 'ROUND 1 — AGENT ANALYSIS', color: 'var(--accent-blue)' },
   round_2: { label: 'ROUND 2 — DEBATE', color: 'var(--accent-orange)' },
   round_3: { label: 'ROUND 3 — SYNTHESIS', color: 'var(--accent-purple)' },
