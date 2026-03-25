@@ -1,110 +1,166 @@
 #!/usr/bin/env python3
-"""Generate a lightweight static SVG for the agentic system flow."""
+"""Generate a clear static SVG for the agentic system flow."""
 
-from pathlib import Path
+from __future__ import annotations
+
 from html import escape
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "figures" / "agentic_system_flow.svg"
 
 
-def box(x, y, w, h, text, fill="#f8fafc"):
-    lines = [
+def box(x: float, y: float, w: float, h: float, text: str, fill: str = "#f8fafc", fs: int = 13) -> str:
+    parts = [
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="{fill}" stroke="#334155" stroke-width="1.4"/>'
     ]
-    cy = y + h / 2 - (len(text.split("\n")) - 1) * 9
-    lines.append(f'<text x="{x + w/2}" y="{cy}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#0f172a">')
-    for i, t in enumerate(text.split("\n")):
-        dy = 0 if i == 0 else 18
-        lines.append(f'<tspan x="{x + w/2}" dy="{dy}">{escape(t)}</tspan>')
-    lines.append('</text>')
-    return "\n".join(lines)
+    lines = text.split("\n")
+    y0 = y + h / 2 - (len(lines) - 1) * (fs * 0.6)
+    parts.append(f'<text x="{x + w/2}" y="{y0}" text-anchor="middle" font-family="Arial, sans-serif" font-size="{fs}" fill="#0f172a">')
+    for i, t in enumerate(lines):
+        dy = 0 if i == 0 else int(fs * 1.35)
+        parts.append(f'<tspan x="{x + w/2}" dy="{dy}">{escape(t)}</tspan>')
+    parts.append("</text>")
+    return "\n".join(parts)
 
 
-def arrow(x1, y1, x2, y2, label=""):
-    # plain line + small triangle arrowhead (no marker defs)
-    parts = [f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#334155" stroke-width="1.5"/>']
-    # arrowhead at end
-    if abs(x2 - x1) >= abs(y2 - y1):
-        # horizontal-ish
-        if x2 >= x1:
-            pts = f"{x2},{y2} {x2-8},{y2-4} {x2-8},{y2+4}"
+def _arrow_head(x1: float, y1: float, x2: float, y2: float) -> str:
+    dx, dy = x2 - x1, y2 - y1
+    if abs(dx) >= abs(dy):
+        if dx >= 0:
+            pts = f"{x2},{y2} {x2-9},{y2-4.5} {x2-9},{y2+4.5}"
         else:
-            pts = f"{x2},{y2} {x2+8},{y2-4} {x2+8},{y2+4}"
+            pts = f"{x2},{y2} {x2+9},{y2-4.5} {x2+9},{y2+4.5}"
     else:
-        # vertical-ish
-        if y2 >= y1:
-            pts = f"{x2},{y2} {x2-4},{y2-8} {x2+4},{y2-8}"
+        if dy >= 0:
+            pts = f"{x2},{y2} {x2-4.5},{y2-9} {x2+4.5},{y2-9}"
         else:
-            pts = f"{x2},{y2} {x2-4},{y2+8} {x2+4},{y2+8}"
-    parts.append(f'<polygon points="{pts}" fill="#334155"/>')
+            pts = f"{x2},{y2} {x2-4.5},{y2+9} {x2+4.5},{y2+9}"
+    return f'<polygon points="{pts}" fill="#334155"/>'
+
+
+def line_arrow(x1: float, y1: float, x2: float, y2: float, label: str = "", dashed: bool = False) -> str:
+    dash = ' stroke-dasharray="6 4"' if dashed else ""
+    parts = [f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#334155" stroke-width="1.6"{dash}/>']
+    parts.append(_arrow_head(x1, y1, x2, y2))
     if label:
-        lx = (x1 + x2) / 2
-        ly = (y1 + y2) / 2 - 6
+        lx, ly = (x1 + x2) / 2, (y1 + y2) / 2 - 7
         parts.append(f'<text x="{lx}" y="{ly}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#334155">{escape(label)}</text>')
     return "\n".join(parts)
 
 
-def main():
+def poly_arrow(points: list[tuple[float, float]], label: str = "", dashed: bool = False) -> str:
+    if len(points) < 2:
+        return ""
+    dash = ' stroke-dasharray="6 4"' if dashed else ""
+    pts = " ".join(f"{x},{y}" for x, y in points)
+    parts = [f'<polyline points="{pts}" fill="none" stroke="#334155" stroke-width="1.6"{dash}/>']
+    (x1, y1), (x2, y2) = points[-2], points[-1]
+    parts.append(_arrow_head(x1, y1, x2, y2))
+    if label:
+        # place label near first bend / midpoint
+        mid = points[len(points)//2]
+        parts.append(f'<text x="{mid[0]}" y="{mid[1]-8}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#334155">{escape(label)}</text>')
+    return "\n".join(parts)
+
+
+def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
 
-    w, h = 1800, 760
-    s = []
+    w, h = 2200, 1180
+    s: list[str] = []
     s.append('<?xml version="1.0" encoding="UTF-8"?>')
     s.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">')
     s.append('<rect width="100%" height="100%" fill="#ffffff"/>')
-    s.append('<text x="900" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">Agentic System Flow (Current Implementation)</text>')
+    s.append('<text x="1100" y="44" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#0f172a">Agentic System Flow (Current Implementation)</text>')
 
-    # Top pipeline (left -> right)
-    s.append(box(40, 100, 190, 62, 'POST /api/v1/analysis'))
-    s.append(box(280, 100, 220, 62, 'Create Redis state\nstatus=pending'))
-    s.append(box(550, 100, 220, 62, 'Background pipeline starts'))
-    s.append(box(820, 100, 220, 62, 'Round 0: predict_alpha\nstatus=predicting'))
-    s.append(box(1100, 60, 220, 56, 'run_chronos_inference', '#dbeafe'))
-    s.append(box(1100, 148, 220, 56, 'run_fincast_lora_inference', '#dcfce7'))
-    s.append(box(1380, 60, 180, 56, 'chronos ok?', '#e2e8f0'))
-    s.append(box(1380, 148, 180, 56, 'fincast ok?', '#e2e8f0'))
-    s.append(box(1610, 60, 150, 56, 'alpha stored', '#e2fbe8'))
-    s.append(box(1610, 148, 150, 56, 'status=error', '#fee2e2'))
+    # --- Top pipeline ---
+    y_top = 110
+    s.append(box(40, y_top, 240, 72, "POST /api/v1/analysis"))
+    s.append(box(330, y_top, 300, 72, "Create Redis state\nstatus=pending"))
+    s.append(box(680, y_top, 300, 72, "Background pipeline starts"))
+    s.append(box(1030, y_top, 300, 72, "Round 0: predict_alpha\nstatus=predicting"))
 
-    s.append(arrow(230, 131, 280, 131))
-    s.append(arrow(500, 131, 550, 131))
-    s.append(arrow(770, 131, 820, 131))
-    s.append(arrow(1040, 131, 1100, 88, 'chronos'))
-    s.append(arrow(1040, 131, 1100, 176, 'fincast_lora'))
-    s.append(arrow(1320, 88, 1380, 88))
-    s.append(arrow(1320, 176, 1380, 176))
-    s.append(arrow(1560, 88, 1610, 88, 'yes'))
-    s.append(arrow(1560, 176, 1610, 176, 'no'))
+    s.append(line_arrow(280, y_top + 36, 330, y_top + 36))
+    s.append(line_arrow(630, y_top + 36, 680, y_top + 36))
+    s.append(line_arrow(980, y_top + 36, 1030, y_top + 36))
 
-    # Rounds panel (top -> bottom)
-    s.append('<rect x="240" y="280" width="1320" height="430" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>')
-    s.append('<text x="900" y="314" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#0f172a">Committee Rounds (top-to-bottom)</text>')
+    # Model branch
+    s.append(box(1400, 70, 280, 62, "run_chronos_inference", fill="#dbeafe"))
+    s.append(box(1400, 150, 280, 62, "run_fincast_lora_inference", fill="#dcfce7"))
 
-    s.append(box(320, 350, 320, 62, 'Round 1: agent analysis (parallel)\nstatus=round_1', '#dbeafe'))
-    s.append(box(320, 435, 320, 62, 'Prefetch tools + trace build'))
-    s.append(box(320, 520, 320, 62, 'LLM AgentView + correction pass'))
+    s.append(line_arrow(1330, y_top + 20, 1400, 100, "chronos"))
+    s.append(line_arrow(1330, y_top + 52, 1400, 181, "fincast_lora"))
 
-    s.append(box(760, 350, 260, 62, 'extract_claims'))
-    s.append(box(760, 435, 260, 62, 'Round 2: debate\nstatus=round_2', '#dcfce7'))
-    s.append(box(760, 520, 260, 62, 'Round 3: memo synthesis\nstatus=round_3', '#dcfce7'))
+    s.append(box(1730, 70, 220, 62, "chronos ok?", fill="#e2e8f0"))
+    s.append(box(1730, 150, 220, 62, "fincast ok?", fill="#e2e8f0"))
 
-    s.append(box(1120, 435, 320, 62, 'Persist memo\nstatus=complete', '#e2fbe8'))
+    s.append(line_arrow(1680, 101, 1730, 101))
+    s.append(line_arrow(1680, 181, 1730, 181))
 
-    s.append(arrow(1610, 88, 480, 350))
-    s.append(arrow(480, 412, 480, 435))
-    s.append(arrow(480, 497, 480, 520))
-    s.append(arrow(640, 381, 760, 381))
-    s.append(arrow(890, 412, 890, 435))
-    s.append(arrow(890, 497, 890, 520))
-    s.append(arrow(1020, 466, 1120, 466))
+    s.append(box(1990, 40, 170, 62, "alpha stored", fill="#e2fbe8"))
+    s.append(box(1990, 180, 170, 62, "status=error", fill="#fee2e2"))
+    s.append(box(1990, 110, 170, 62, "placeholder\nalpha", fill="#fff7ed"))
 
-    s.append(arrow(770, 162, 1610, 176, 'any unhandled exception'))
+    s.append(line_arrow(1950, 101, 1990, 71, "yes"))
+    s.append(line_arrow(1950, 101, 1990, 141, "no"))
+    s.append(line_arrow(2075, 172, 2075, 102))
+    s.append(line_arrow(1950, 181, 1990, 211, "no"))
+    s.append(line_arrow(1950, 181, 1990, 71, "yes"))
+
+    # Unhandled exception routed outside to avoid overlaps
+    s.append(poly_arrow([(980, y_top + 72), (980, 260), (2075, 260), (2075, 242)], "any unhandled exception", dashed=True))
+
+    # --- Committee rounds panel ---
+    panel_x, panel_y, panel_w, panel_h = 140, 320, 1920, 800
+    s.append(f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>')
+    s.append('<text x="1100" y="366" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#0f172a">Committee Rounds (top-to-bottom)</text>')
+
+    # Round 1 chain
+    s.append(box(220, 410, 420, 72, "Round 1: agent analysis (parallel)\nstatus=round_1", fill="#dbeafe"))
+    s.append(box(220, 500, 420, 64, "Prefetch tools + trace build"))
+    s.append(box(220, 582, 420, 64, "LLM AgentView JSON + correction pass"))
+
+    s.append(line_arrow(430, 482, 430, 500))
+    s.append(line_arrow(430, 564, 430, 582))
+
+    # Agent role boxes (what each agent does)
+    agent_y = 690
+    aw, ah, gap, start = 350, 250, 20, 180
+    s.append(box(start + 0*(aw+gap), agent_y, aw, ah,
+                 "Quantitative\n- price momentum\n- alpha signal strength\n- technical context", fill="#e0f2fe", fs=12))
+    s.append(box(start + 1*(aw+gap), agent_y, aw, ah,
+                 "Fundamentals\n- valuation and peers\n- financial health\n- analyst estimates", fill="#dcfce7", fs=12))
+    s.append(box(start + 2*(aw+gap), agent_y, aw, ah,
+                 "Sentiment\n- news narrative\n- web/reddit pulse\n- positioning tone", fill="#fef3c7", fs=12))
+    s.append(box(start + 3*(aw+gap), agent_y, aw, ah,
+                 "Risk Guardian\n- tail risk / CVaR\n- options & short interest\n- stress scenarios", fill="#fee2e2", fs=12))
+    s.append(box(start + 4*(aw+gap), agent_y, aw, ah,
+                 "Macro Regime\n- yield curve + rates\n- risk-on/off regime\n- cross-asset backdrop", fill="#ede9fe", fs=12))
+
+    # Link round1 to agent roles
+    for i in range(5):
+        cx = start + i * (aw + gap) + aw / 2
+        s.append(poly_arrow([(430, 646), (430, 668), (cx, 668), (cx, agent_y)]))
+
+    # Right-side synthesis chain
+    s.append(box(760, 430, 300, 72, "extract_claims"))
+    s.append(box(760, 522, 300, 72, "Round 2: debate\nstatus=round_2", fill="#dcfce7"))
+    s.append(box(760, 614, 300, 72, "Round 3: memo synthesis\nstatus=round_3", fill="#dcfce7"))
+    s.append(box(1110, 522, 360, 72, "Persist memo\nstatus=complete", fill="#e2fbe8"))
+
+    s.append(line_arrow(640, 446, 760, 466))
+    s.append(line_arrow(910, 502, 910, 522))
+    s.append(line_arrow(910, 594, 910, 614))
+    s.append(line_arrow(1060, 558, 1110, 558))
+
+    # Entry from alpha stored to round1
+    s.append(poly_arrow([(2050, 71), (2050, 290), (430, 290), (430, 410)]))
 
     s.append('</svg>')
-    OUT.write_text("\n".join(s), encoding='utf-8')
-    print(f'Wrote {OUT}')
+    OUT.write_text("\n".join(s), encoding="utf-8")
+    print(f"Wrote {OUT}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
