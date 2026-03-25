@@ -5,6 +5,7 @@ import type {
 import { startAnalysis, getAnalysisStatus } from '../api/client';
 
 const AGENT_NAMES: AgentName[] = ['quant', 'fundamentals', 'sentiment', 'risk', 'macro'];
+const MAX_POLL_FAILURES = 3;
 
 function initialAgentState(): AgentState {
   return { status: 'idle', streamedText: '', view: null, debate: null };
@@ -62,15 +63,22 @@ export const useAnalysisStore = create<AnalysisStore>((set, get) => ({
       });
 
       // Start polling
+      let pollFailures = 0;
       const poll = setInterval(async () => {
         try {
           await get().pollStatus();
+          pollFailures = 0;
           const s = get().status;
           if (s === 'complete' || s === 'error') {
             clearInterval(poll);
           }
-        } catch {
-          clearInterval(poll);
+        } catch (err) {
+          pollFailures += 1;
+          if (pollFailures >= MAX_POLL_FAILURES) {
+            clearInterval(poll);
+            const message = err instanceof Error ? err.message : 'Backend polling failed';
+            set({ status: 'error', error: `Polling failed: ${message}` });
+          }
         }
       }, 2000);
     } catch (err) {
