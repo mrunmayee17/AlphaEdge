@@ -2,7 +2,7 @@
 
 ## FinCast Fine-Tune Metrics and Evaluation
 
-This README documents the latest local FinCast LoRA run artifacts in `models/fincast_runtime_local`.
+This README documents the current checked-in FinCast LoRA artifacts in `models/fincast_runtime_local` and the current backend/frontend implementation behavior.
 
 ### Run Snapshot
 
@@ -82,7 +82,9 @@ Notes:
 
 ### System Overview
 
-Alpha Edge runs an agentic investment-committee pipeline behind a FastAPI backend.
+This section reflects the current code path in `backend/app/api/endpoints/analysis.py` (as of March 25, 2026), not a future/target architecture.
+
+Alpha Edge runs a background async investment-committee workflow behind a FastAPI backend, with per-session state persisted in Redis.
 
 Core flow:
 
@@ -106,9 +108,9 @@ The API supports two forecast engines via `forecast_model`:
 - `chronos`
 - `fincast_lora`
 
-Chronos-2 details (`forecast_model="chronos"`):
+Chronos path details (`forecast_model="chronos"`):
 
-- Runtime uses `amazon/chronos-bolt-base` by default (`chronos_model_id` in settings).
+- UI/agent prompts label this option as "Chronos-2", while implementation loads `ChronosBoltPipeline` from the configured model ID (default: `amazon/chronos-bolt-base`).
 - Inference is based on log-return context with `context_length=512`.
 - Forecast horizon is rolled up to `1d`, `5d`, `21d`, and `63d`.
 - Uses Chronos quantiles (`0.1..0.9`) and maps:
@@ -120,6 +122,7 @@ Chronos-2 details (`forecast_model="chronos"`):
   - `q10_*` and `q90_*` bands
   - `model_version="chronos-2:<model_name>"`
   - `training_fold="pretrained"`
+- Current implementation sets `patch_attention=[]` and `top_features=[]` (no populated interpretability payload yet).
 
 Fine-tuned FinCast LoRA details (`forecast_model="fincast_lora"`):
 
@@ -128,10 +131,11 @@ Fine-tuned FinCast LoRA details (`forecast_model="fincast_lora"`):
   - `ES, NQ, RTY, YM, ZN, ZB, CL, NG, GC, HG`
 - Uses iterative rollout with step horizon (`fincast_step_horizon`, default `5`) to reach `63d`.
 - Uses adapter metadata for run provenance (`training_status.json` / best epoch info).
+- Current implementation also sets `patch_attention=[]` and `top_features=[]`.
 
 Fallback behavior:
 
-- If `chronos` inference fails during analysis, pipeline falls back to a placeholder forecast and continues.
+- If `chronos` inference fails during analysis, pipeline falls back to a placeholder forecast payload and continues.
 - If `fincast_lora` is explicitly selected and fails, it raises an error (no silent fallback).
 
 Primary implementation file:
@@ -158,6 +162,11 @@ Data/tool sources used by tools:
 Tool registry and assignments:
 
 - `backend/app/agents/tools.py` (`AGENT_TOOLS`)
+
+Failure behavior:
+
+- Tool failures are returned as structured error payloads (dicts) and analysis proceeds with partial data.
+- This is intentional graceful degradation at the tool layer.
 
 ### Hallucination Guardrails
 
@@ -210,7 +219,9 @@ Operational characteristics:
 - Redis-backed session state with TTL (`redis_session_ttl_seconds`).
 - Startup health checks for Redis, Nemotron, Brave, FRED (Yahoo is non-fatal due to possible rate limits).
 - OpenTelemetry tracing spans across predict/rounds/debate/memo synthesis.
-- Frontend supports WebSocket streaming and REST polling fallback.
+- Frontend currently uses REST polling (`pollStatus` every 2s) for live progress updates.
+- A WebSocket backend endpoint and client helper exist, but the current store/page flow is polling-first.
+- `backend/app/core/circuit_breaker.py` defines breakers, but they are not currently wired into the main request path.
 
 Primary files:
 
