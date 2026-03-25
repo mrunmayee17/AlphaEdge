@@ -179,6 +179,13 @@ The API supports two forecast engines via `forecast_model`:
 - `chronos`
 - `fincast_lora`
 
+Repos/models used:
+
+- Chronos code repo: [amazon-science/chronos-forecasting](https://github.com/amazon-science/chronos-forecasting)
+- Chronos model ID used by backend default: [`amazon/chronos-bolt-base`](https://huggingface.co/amazon/chronos-bolt-base)
+- FinCast training/code repo used by the Colab pipeline: [vincent05r/FinCast-fts](https://github.com/vincent05r/FinCast-fts)
+- FinCast checkpoint source used by the training runner: [`Vincent05R/FinCast` (`v1.pth`)](https://huggingface.co/Vincent05R/FinCast)
+
 Chronos path details (`forecast_model="chronos"`):
 
 - UI/agent prompts label this option as "Chronos-2", while implementation loads `ChronosBoltPipeline` from the configured model ID (default: `amazon/chronos-bolt-base`).
