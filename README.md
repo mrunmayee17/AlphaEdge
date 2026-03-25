@@ -12,6 +12,17 @@ This README documents the current checked-in FinCast LoRA artifacts in `models/f
   <img src="docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg" alt="Holdout directional accuracy by asset class" width="32%">
 </p>
 
+### Product Screenshots
+
+<p>
+  <img src="docs/figures/ui_dashboard_header_forecast.png" alt="Alpha Edge dashboard with forecast controls" width="49%">
+  <img src="docs/figures/ui_agent_analysis_full.png" alt="Alpha Edge full agent analysis view" width="49%">
+</p>
+<p>
+  <img src="docs/figures/ui_investment_memo_detail.png" alt="Investment memo detail panel" width="49%">
+  <img src="docs/figures/ui_agent_cards_panel.png" alt="Agent cards panel" width="49%">
+</p>
+
 ### Run Snapshot
 
 - Run timestamp (UTC): `2026-03-24T05:33:30.394853+00:00`
@@ -111,6 +122,8 @@ python3 scripts/generate_fincast_eval_graphs.py
 - `docs/figures/fincast_eval_pooled_turnover.svg`
 - `docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg`
 - `docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg`
+- `docs/figures/agentic_system_flow.svg`
+- `scripts/generate_agentic_flow_diagram.py`
 
 ## Agentic System Details
 
@@ -129,51 +142,12 @@ Core flow:
 
 Agentic flow diagram (current implementation):
 
-```mermaid
-%%{init: {
-  "theme": "base",
-  "themeVariables": {
-    "background": "#f8fafc",
-    "primaryColor": "#e2e8f0",
-    "primaryTextColor": "#0f172a",
-    "primaryBorderColor": "#334155",
-    "lineColor": "#334155",
-    "secondaryColor": "#dbeafe",
-    "tertiaryColor": "#dcfce7"
-  }
-}}%%
-flowchart LR
-    A[POST /api/v1/analysis] --> B[Create Redis session state: status=pending]
-    B --> C[Background pipeline starts]
-    C --> D[Round 0: predict_alpha<br/>status=predicting]
+![Agentic system flow diagram](docs/figures/agentic_system_flow.svg)
 
-    D --> E{forecast_model}
-    E -->|chronos| F[run_chronos_inference]
-    E -->|fincast_lora| G[run_fincast_lora_inference]
+Source generator:
 
-    F --> H{chronos inference ok?}
-    H -->|yes| I[alpha_prediction stored]
-    H -->|no| J[Use placeholder alpha payload]
-    J --> I
-    G --> K{fincast inference ok?}
-    K -->|yes| I
-    K -->|no| Z[status=error]
-
-    I --> L
-    subgraph ROUNDS[Committee rounds]
-        direction TB
-        L[Round 1: agent analysis in parallel<br/>status=round_1]
-        M[Prefetch tools per agent + build trace]
-        N[LLM AgentView JSON generation]
-        O[Hallucination check + optional correction pass]
-        P[extract_claims]
-        Q[Round 2: debate in parallel<br/>status=round_2]
-        R[Round 3: memo synthesis<br/>status=round_3]
-        S[Persist memo + status=complete]
-        L --> M --> N --> O --> P --> Q --> R --> S
-    end
-
-    C -->|any unhandled exception| Z
+```bash
+python3 scripts/generate_agentic_flow_diagram.py
 ```
 
 Primary implementation files:
