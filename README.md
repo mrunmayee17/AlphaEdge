@@ -4,6 +4,14 @@
 
 This README documents the current checked-in FinCast LoRA artifacts in `models/fincast_runtime_local` and the current backend/frontend implementation behavior.
 
+### Quick Graphs
+
+![Pooled directional accuracy](docs/figures/fincast_eval_pooled_directional_accuracy.svg)
+
+![Pooled rank IC](docs/figures/fincast_eval_pooled_rank_ic.svg)
+
+![Holdout directional accuracy by asset class](docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg)
+
 ### Run Snapshot
 
 - Run timestamp (UTC): `2026-03-24T05:33:30.394853+00:00`
