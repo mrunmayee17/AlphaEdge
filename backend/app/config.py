@@ -35,10 +35,13 @@ class Settings(BaseSettings):
 
     # Fine-tuned FinCast LoRA runtime
     fincast_checkpoint_path: str = ""
+    fincast_checkpoint_url: str = ""
     fincast_adapter_dir: str = ""
     fincast_results_zip_path: str = ""
+    fincast_results_zip_url: str = ""
     fincast_adapter_subdir: str = "lora_adapter_best"
     fincast_extract_dir: str = str(Path(__file__).resolve().parent.parent.parent / "models" / "fincast_runtime")
+    fincast_download_timeout_seconds: int = 1800
     fincast_device: str = "cpu"
     fincast_context_length: int = 128
     fincast_step_horizon: int = 5

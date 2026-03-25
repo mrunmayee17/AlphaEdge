@@ -33,6 +33,10 @@ Set backend environment variables:
 - FinCast vars:
   - `FINCAST_CHECKPOINT_PATH=<path to v1.pth>`
   - `FINCAST_RESULTS_ZIP_PATH=<path to fincast_results.zip>`
+  - OR URL-based bootstrap (no shell upload needed):
+    - `FINCAST_CHECKPOINT_URL=<https://.../v1.pth>`
+    - `FINCAST_RESULTS_ZIP_URL=<https://.../fincast_results.zip>`
+    - optional `FINCAST_DOWNLOAD_TIMEOUT_SECONDS=1800`
   - optional: `FINCAST_ADAPTER_SUBDIR=lora_adapter_best`
 
 ## 3. Smoke Test

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import time
+import urllib.request
 import zipfile
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -131,6 +133,30 @@ def _resolve_fincast_symbol(ticker: str) -> str | None:
     return None
 
 
+def _default_fincast_artifact_dir(settings: "Settings") -> Path:
+    return Path(settings.fincast_extract_dir).expanduser().resolve().parent / "artifacts"
+
+
+def _resolve_artifact_path(configured_path: str, default_name: str, settings: "Settings") -> Path:
+    if configured_path:
+        return Path(configured_path).expanduser().resolve()
+    return (_default_fincast_artifact_dir(settings) / default_name).resolve()
+
+
+def _download_artifact(url: str, destination: Path, *, timeout_seconds: int, label: str) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    partial_path = destination.with_suffix(destination.suffix + ".part")
+    logger.info("Downloading %s from %s to %s", label, url, destination)
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "alpha-edge-fincast/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout_seconds) as response, partial_path.open("wb") as out:
+            shutil.copyfileobj(response, out)
+        partial_path.replace(destination)
+    except Exception as exc:  # noqa: BLE001
+        partial_path.unlink(missing_ok=True)
+        raise RuntimeError(f"Failed to download {label} from {url}: {exc}") from exc
+
+
 def _resolve_fincast_adapter_dir(settings: "Settings") -> Path:
     if settings.fincast_adapter_dir:
         adapter_path = Path(settings.fincast_adapter_dir).expanduser().resolve()
@@ -138,14 +164,21 @@ def _resolve_fincast_adapter_dir(settings: "Settings") -> Path:
             raise RuntimeError(f"FINCAST_ADAPTER_DIR does not exist: {adapter_path}")
         return adapter_path
 
-    if not settings.fincast_results_zip_path:
+    if not settings.fincast_results_zip_path and not settings.fincast_results_zip_url:
         raise RuntimeError(
-            "Fine-tuned FinCast requires FINCAST_ADAPTER_DIR or FINCAST_RESULTS_ZIP_PATH to be configured."
+            "Fine-tuned FinCast requires FINCAST_ADAPTER_DIR, FINCAST_RESULTS_ZIP_PATH, or FINCAST_RESULTS_ZIP_URL."
         )
 
-    zip_path = Path(settings.fincast_results_zip_path).expanduser().resolve()
+    zip_path = _resolve_artifact_path(settings.fincast_results_zip_path, "fincast_results.zip", settings)
     if not zip_path.exists():
-        raise RuntimeError(f"FINCAST_RESULTS_ZIP_PATH does not exist: {zip_path}")
+        if not settings.fincast_results_zip_url:
+            raise RuntimeError(f"FINCAST_RESULTS_ZIP_PATH does not exist: {zip_path}")
+        _download_artifact(
+            settings.fincast_results_zip_url,
+            zip_path,
+            timeout_seconds=settings.fincast_download_timeout_seconds,
+            label="FINCAST_RESULTS_ZIP",
+        )
 
     extract_root = Path(settings.fincast_extract_dir).expanduser().resolve()
     extract_root.mkdir(parents=True, exist_ok=True)
@@ -170,14 +203,21 @@ def _nearest_quantile_index(quantiles: list[float], target: float) -> int | None
 
 
 def _load_fincast_runtime(settings: "Settings") -> FincastRuntime:
-    if not settings.fincast_checkpoint_path:
+    if not settings.fincast_checkpoint_path and not settings.fincast_checkpoint_url:
         raise RuntimeError(
-            "Fine-tuned FinCast requires FINCAST_CHECKPOINT_PATH to point to the base FinCast checkpoint."
+            "Fine-tuned FinCast requires FINCAST_CHECKPOINT_PATH or FINCAST_CHECKPOINT_URL."
         )
 
-    checkpoint_path = Path(settings.fincast_checkpoint_path).expanduser().resolve()
+    checkpoint_path = _resolve_artifact_path(settings.fincast_checkpoint_path, "v1.pth", settings)
     if not checkpoint_path.exists():
-        raise RuntimeError(f"FINCAST_CHECKPOINT_PATH does not exist: {checkpoint_path}")
+        if not settings.fincast_checkpoint_url:
+            raise RuntimeError(f"FINCAST_CHECKPOINT_PATH does not exist: {checkpoint_path}")
+        _download_artifact(
+            settings.fincast_checkpoint_url,
+            checkpoint_path,
+            timeout_seconds=settings.fincast_download_timeout_seconds,
+            label="FINCAST_CHECKPOINT",
+        )
 
     adapter_path = _resolve_fincast_adapter_dir(settings)
     cache_key = f"{checkpoint_path}:{adapter_path}"
