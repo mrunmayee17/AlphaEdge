@@ -1,0 +1,10 @@
+{
+  "name": "alphaedge-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "npm ci --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "dev": "npm run dev --prefix frontend -- --host 0.0.0.0 --port 3000"
+  }
+}
