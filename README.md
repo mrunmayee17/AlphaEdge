@@ -137,6 +137,39 @@ Core flow:
 3. Extract claims and run cross-agent debate.
 4. Synthesize a final investment memo with recommendation and position sizing.
 
+Agentic flow diagram (current implementation):
+
+```mermaid
+flowchart TD
+    A[POST /api/v1/analysis] --> B[Create Redis session state: status=pending]
+    B --> C[Background pipeline starts]
+    C --> D[Round 0: predict_alpha<br/>status=predicting]
+
+    D --> E{forecast_model}
+    E -->|chronos| F[run_chronos_inference]
+    E -->|fincast_lora| G[run_fincast_lora_inference]
+
+    F --> H{chronos inference ok?}
+    H -->|yes| I[alpha_prediction stored]
+    H -->|no| J[Use placeholder alpha payload]
+    J --> I
+    G --> K{fincast inference ok?}
+    K -->|yes| I
+    K -->|no| Z[status=error]
+
+    I --> L[Round 1: agent analysis in parallel<br/>status=round_1]
+    L --> M[Prefetch tools per agent + build trace]
+    M --> N[LLM AgentView JSON generation]
+    N --> O[Hallucination check + optional correction pass]
+
+    O --> P[extract_claims]
+    P --> Q[Round 2: debate in parallel<br/>status=round_2]
+    Q --> R[Round 3: memo synthesis<br/>status=round_3]
+    R --> S[Persist memo + status=complete]
+
+    C -->|any unhandled exception| Z
+```
+
 Primary implementation files:
 
 - `backend/app/api/endpoints/analysis.py`
