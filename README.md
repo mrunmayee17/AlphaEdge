@@ -130,7 +130,7 @@ Core flow:
 Agentic flow diagram (current implementation):
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[POST /api/v1/analysis] --> B[Create Redis session state: status=pending]
     B --> C[Background pipeline starts]
     C --> D[Round 0: predict_alpha<br/>status=predicting]
@@ -147,15 +147,19 @@ flowchart TD
     K -->|yes| I
     K -->|no| Z[status=error]
 
-    I --> L[Round 1: agent analysis in parallel<br/>status=round_1]
-    L --> M[Prefetch tools per agent + build trace]
-    M --> N[LLM AgentView JSON generation]
-    N --> O[Hallucination check + optional correction pass]
-
-    O --> P[extract_claims]
-    P --> Q[Round 2: debate in parallel<br/>status=round_2]
-    Q --> R[Round 3: memo synthesis<br/>status=round_3]
-    R --> S[Persist memo + status=complete]
+    I --> L
+    subgraph ROUNDS[Committee rounds]
+        direction TB
+        L[Round 1: agent analysis in parallel<br/>status=round_1]
+        M[Prefetch tools per agent + build trace]
+        N[LLM AgentView JSON generation]
+        O[Hallucination check + optional correction pass]
+        P[extract_claims]
+        Q[Round 2: debate in parallel<br/>status=round_2]
+        R[Round 3: memo synthesis<br/>status=round_3]
+        S[Persist memo + status=complete]
+        L --> M --> N --> O --> P --> Q --> R --> S
+    end
 
     C -->|any unhandled exception| Z
 ```
