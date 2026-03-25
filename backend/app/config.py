@@ -33,6 +33,18 @@ class Settings(BaseSettings):
     # Chronos-2 time-series foundation model (HuggingFace ID)
     chronos_model_id: str = "amazon/chronos-bolt-base"
 
+    # Fine-tuned FinCast LoRA runtime
+    fincast_checkpoint_path: str = ""
+    fincast_adapter_dir: str = ""
+    fincast_results_zip_path: str = ""
+    fincast_adapter_subdir: str = "lora_adapter_best"
+    fincast_extract_dir: str = str(Path(__file__).resolve().parent.parent.parent / "models" / "fincast_runtime")
+    fincast_device: str = "cpu"
+    fincast_context_length: int = 128
+    fincast_step_horizon: int = 5
+    fincast_num_experts: int = 4
+    fincast_gating_top_n: int = 2
+
     # W&B
     wandb_api_key: str = ""
     wandb_entity: str = ""

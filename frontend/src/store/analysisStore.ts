@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type {
-  AgentName, AgentState, AlphaPrediction, AnalysisStatus, InvestmentMemo,
+  AgentName, AgentState, AlphaPrediction, AnalysisStatus, ForecastModel, InvestmentMemo,
 } from '../types';
 import { startAnalysis, getAnalysisStatus } from '../api/client';
 
@@ -13,6 +13,7 @@ function initialAgentState(): AgentState {
 interface AnalysisStore {
   ticker: string | null;
   analysisId: string | null;
+  forecastModel: ForecastModel;
   status: AnalysisStatus;
   error: string | null;
   alphaPrediction: AlphaPrediction | null;
@@ -20,6 +21,7 @@ interface AnalysisStore {
   memo: InvestmentMemo | null;
 
   setTicker: (ticker: string) => void;
+  setForecastModel: (forecastModel: ForecastModel) => void;
   runAnalysis: (ticker: string) => Promise<void>;
   pollStatus: () => Promise<void>;
   reset: () => void;
@@ -30,6 +32,7 @@ interface AnalysisStore {
 export const useAnalysisStore = create<AnalysisStore>((set, get) => ({
   ticker: null,
   analysisId: null,
+  forecastModel: 'chronos',
   status: 'idle',
   error: null,
   alphaPrediction: null,
@@ -37,8 +40,10 @@ export const useAnalysisStore = create<AnalysisStore>((set, get) => ({
   memo: null,
 
   setTicker: (ticker) => set({ ticker }),
+  setForecastModel: (forecastModel) => set({ forecastModel }),
 
   runAnalysis: async (ticker) => {
+    const forecastModel = get().forecastModel;
     set({
       ticker,
       status: 'predicting',
@@ -49,8 +54,12 @@ export const useAnalysisStore = create<AnalysisStore>((set, get) => ({
     });
 
     try {
-      const resp = await startAnalysis(ticker);
-      set({ analysisId: resp.analysis_id, status: resp.status as AnalysisStatus });
+      const resp = await startAnalysis(ticker, forecastModel);
+      set({
+        analysisId: resp.analysis_id,
+        status: resp.status as AnalysisStatus,
+        forecastModel: resp.forecast_model ?? forecastModel,
+      });
 
       // Start polling
       const poll = setInterval(async () => {

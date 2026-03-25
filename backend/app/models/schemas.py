@@ -7,6 +7,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+ForecastModel = Literal["chronos", "fincast_lora"]
+
 
 # ── Alpha Prediction (from Chronos-2) ───────────────────────────────────────
 
@@ -188,17 +190,20 @@ class TraceEvent(BaseModel):
 
 class AnalysisRequest(BaseModel):
     ticker: str = Field(min_length=1, max_length=10, pattern=r"^[A-Za-z0-9.\-=^]+$")
+    forecast_model: ForecastModel = "chronos"
 
 
 class AnalysisResponse(BaseModel):
     analysis_id: str
     ticker: str
     status: str
+    forecast_model: ForecastModel = "chronos"
 
 
 class AnalysisStatus(BaseModel):
     analysis_id: str
     ticker: str
+    forecast_model: ForecastModel = "chronos"
     status: Literal[
         "pending", "predicting", "round_1", "round_2", "round_3", "complete", "error"
     ]

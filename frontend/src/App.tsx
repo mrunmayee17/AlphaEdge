@@ -12,7 +12,7 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/AlphaEdge">
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/analysis/:id" element={<DashboardPage />} />

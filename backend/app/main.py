@@ -1,6 +1,7 @@
 """FastAPI application — lifespan verifies ALL services at startup."""
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
@@ -19,6 +20,20 @@ from backend.app.services.search.brightdata_reddit import BrightDataClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+_DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://mrunmayee17.github.io",
+]
+
+
+def _resolve_cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS", "").strip()
+    if not raw:
+        return _DEFAULT_CORS_ORIGINS
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or _DEFAULT_CORS_ORIGINS
 
 
 @asynccontextmanager
@@ -100,11 +115,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://mrunmayee17.github.io",
-    ],
+    allow_origins=_resolve_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -39,6 +39,7 @@ async def start_analysis(req: AnalysisRequest, request: Request):
     redis = request.app.state.redis
     state: CommitteeState = {
         "ticker": ticker,
+        "forecast_model": req.forecast_model,
         "alpha_prediction": None,
         "status": "pending",
         "trace": [],
@@ -61,7 +62,12 @@ async def start_analysis(req: AnalysisRequest, request: Request):
         _run_pipeline(analysis_id, state, request.app)
     )
 
-    return AnalysisResponse(analysis_id=analysis_id, ticker=ticker, status="pending")
+    return AnalysisResponse(
+        analysis_id=analysis_id,
+        ticker=ticker,
+        status="pending",
+        forecast_model=req.forecast_model,
+    )
 
 
 @router.get("/analysis/{analysis_id}")
@@ -135,7 +141,13 @@ async def _run_pipeline(analysis_id: str, state: CommitteeState, app):
                     sector = "Unknown"
 
                 # Try real model inference, fall back to placeholder
-                alpha_pred = await _try_model_inference(ticker, sector, sector_etf, app)
+                alpha_pred = await _try_model_inference(
+                    ticker,
+                    sector,
+                    sector_etf,
+                    app,
+                    state.get("forecast_model", "chronos"),
+                )
                 state["alpha_prediction"] = alpha_pred
                 await _update_state(redis, analysis_id, state, ttl)
 
@@ -232,12 +244,24 @@ async def _run_pipeline(analysis_id: str, state: CommitteeState, app):
         await _update_state(redis, analysis_id, state, ttl)
 
 
-async def _try_model_inference(ticker: str, sector: str, sector_etf: str, app) -> dict:
-    """Try Chronos-2 model inference, fall back to placeholder values."""
+async def _try_model_inference(ticker: str, sector: str, sector_etf: str, app, forecast_model: str) -> dict:
+    """Run selected model inference.
+
+    Chronos keeps the existing placeholder fallback. Fine-tuned FinCast does not
+    silently degrade because the user explicitly selected it.
+    """
     try:
-        from backend.app.services.prediction.inference import run_inference
-        return await run_inference(ticker, sector, sector_etf, app.state.settings.chronos_model_id)
+        from backend.app.services.prediction.inference import run_selected_inference
+        return await run_selected_inference(
+            ticker=ticker,
+            sector=sector,
+            sector_etf=sector_etf,
+            forecast_model=forecast_model,
+            settings=app.state.settings,
+        )
     except Exception as e:
+        if forecast_model != "chronos":
+            raise
         logger.warning(f"Model inference failed, using placeholder: {e}")
         return {
             "ticker": ticker,
@@ -250,7 +274,7 @@ async def _try_model_inference(ticker: str, sector: str, sector_etf: str, app) -
             "q10_21d": -0.040, "q90_21d": 0.090,
             "q10_63d": -0.060, "q90_63d": 0.150,
             "patch_attention": [], "top_features": [],
-            "model_version": "placeholder", "training_fold": "none",
+            "model_version": f"placeholder:{forecast_model}", "training_fold": "none",
             "inference_latency_ms": 0.0,
         }
 

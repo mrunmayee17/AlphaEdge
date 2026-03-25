@@ -26,10 +26,16 @@ from .tools import AGENT_TOOLS, set_committee_state
 
 logger = logging.getLogger(__name__)
 
+FORECAST_MODEL_LABELS = {
+    "chronos": "Chronos-2",
+    "fincast_lora": "Fine-tuned FinCast LoRA",
+}
+
 
 class CommitteeState(TypedDict, total=False):
     """Full state for the 3-round committee protocol."""
     ticker: str
+    forecast_model: str
     alpha_prediction: Optional[dict]
     # Round 1: agent views
     quant_view: Optional[dict]
@@ -121,8 +127,14 @@ async def run_agent_round1(
     """
     ticker = state["ticker"]
     asset_name = state.get("asset_name", ticker)
+    forecast_model = state.get("forecast_model", "chronos")
+    forecast_model_label = FORECAST_MODEL_LABELS.get(forecast_model, forecast_model)
     system_prompt = AGENT_PROMPTS[agent_name].format(
-        ticker=ticker, agent_name=agent_name, asset_name=asset_name,
+        ticker=ticker,
+        agent_name=agent_name,
+        asset_name=asset_name,
+        forecast_model=forecast_model,
+        forecast_model_label=forecast_model_label,
     )
 
     # Set state so tools can access alpha prediction
@@ -147,7 +159,8 @@ async def run_agent_round1(
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": (
             f"Analyze {asset_name} ({ticker}).\n\n"
-            f"ALPHA PREDICTION (from Chronos-2 model — use these EXACT numbers):\n{alpha_str}\n\n"
+            f"SELECTED FORECAST ENGINE: {forecast_model} ({forecast_model_label})\n\n"
+            f"ALPHA PREDICTION (from the selected forecast model — use these EXACT numbers):\n{alpha_str}\n\n"
             f"TOOL DATA (pre-fetched — use these EXACT values in your analysis):\n{all_data_str}\n\n"
             f"Guidelines for direction based on alpha_21d:\n"
             f"- If |alpha_21d| < 0.005 (0.5%), the signal is WEAK — lean NEUTRAL unless tool data strongly supports a direction.\n"
@@ -279,6 +292,8 @@ async def synthesize_memo(
 ) -> dict:
     """Round 3: Synthesize all views + debate into final Investment Memo."""
     ticker = state["ticker"]
+    forecast_model = state.get("forecast_model", "chronos")
+    forecast_model_label = FORECAST_MODEL_LABELS.get(forecast_model, forecast_model)
     alpha = state.get("alpha_prediction", {})
 
     # Collect agent views
@@ -303,13 +318,17 @@ async def synthesize_memo(
             alpha_summary = alpha.summary()
         elif isinstance(alpha, dict):
             alpha_summary = (
-                f"{ticker}: alpha_21d={alpha.get('alpha_21d', 'N/A')}, "
+                f"{ticker}: model={forecast_model}, "
+                f"model_version={alpha.get('model_version', 'N/A')}, "
+                f"alpha_21d={alpha.get('alpha_21d', 'N/A')}, "
                 f"[{alpha.get('q10_21d', 'N/A')}, {alpha.get('q90_21d', 'N/A')}]"
             )
 
     prompt = MEMO_SYSTEM.format(
         ticker=ticker,
         date=str(date.today()),
+        forecast_model=forecast_model,
+        forecast_model_label=forecast_model_label,
         agent_views=json.dumps(agent_views, default=str, indent=2),
         debate_responses=json.dumps(debate_responses, default=str, indent=2),
         alpha_summary=alpha_summary,

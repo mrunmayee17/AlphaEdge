@@ -46,14 +46,18 @@ def set_committee_state(state: dict):
 
 @tool
 def get_alpha_prediction() -> dict:
-    """Read the Chronos-2 alpha prediction from committee state.
+    """Read the model-generated alpha prediction from committee state.
     Returns the full prediction with quantile bands at 1d/5d/21d/63d horizons."""
     if _committee_state is None or _committee_state.get("alpha_prediction") is None:
         return {"error": "No alpha prediction available"}
     pred = _committee_state["alpha_prediction"]
+    forecast_model = _committee_state.get("forecast_model", "chronos")
     if hasattr(pred, "model_dump"):
-        return pred.model_dump()
-    return pred
+        payload = pred.model_dump()
+    else:
+        payload = dict(pred)
+    payload.setdefault("forecast_model", forecast_model)
+    return payload
 
 
 @tool

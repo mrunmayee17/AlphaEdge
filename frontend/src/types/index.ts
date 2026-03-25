@@ -2,6 +2,7 @@ export type AgentName = 'quant' | 'fundamentals' | 'sentiment' | 'risk' | 'macro
 export type Direction = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
 export type Recommendation = 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
 export type AnalysisStatus = 'idle' | 'pending' | 'predicting' | 'round_1' | 'round_2' | 'round_3' | 'complete' | 'error';
+export type ForecastModel = 'chronos' | 'fincast_lora';
 
 export interface AlphaPrediction {
   ticker: string;
@@ -83,4 +84,5 @@ export interface AnalysisResponse {
   analysis_id: string;
   ticker: string;
   status: AnalysisStatus;
+  forecast_model: ForecastModel;
 }

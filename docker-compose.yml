@@ -22,10 +22,20 @@ services:
     env_file: .env
     environment:
       - REDIS_URL=redis://redis:6379
+      - FINCAST_CHECKPOINT_PATH=/app/models/fincast/v1.pth
+      - FINCAST_RESULTS_ZIP_PATH=/app/models/fincast/fincast_results.zip
+      - FINCAST_ADAPTER_SUBDIR=lora_adapter_best
+      - FINCAST_DEVICE=cpu
+      - FINCAST_CONTEXT_LENGTH=128
+      - FINCAST_STEP_HORIZON=5
+      - FINCAST_NUM_EXPERTS=4
+      - FINCAST_GATING_TOP_N=2
     ports:
       - "8000:8000"
     volumes:
       - hf_cache:/app/.hf_cache
+      - /Users/mrunmayeerane/Downloads/v1.pth:/app/models/fincast/v1.pth:ro
+      - /Users/mrunmayeerane/Downloads/fincast_results.zip:/app/models/fincast/fincast_results.zip:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s

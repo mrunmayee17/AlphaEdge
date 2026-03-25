@@ -1,5 +1,6 @@
 """Test Chronos-2 inference service."""
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -74,3 +75,35 @@ def test_quantiles_ordered(mock_pipeline, mock_returns):
         assert result[f"alpha_{label}"] <= result[f"q90_{label}"] + 0.01
 
     _pipeline_cache.pop(CHRONOS_MODEL_ID, None)
+
+
+def test_run_selected_inference_dispatches_to_fincast():
+    import asyncio
+    from app.services.prediction.inference import run_selected_inference
+
+    settings = SimpleNamespace(chronos_model_id=CHRONOS_MODEL_ID)
+
+    with patch(
+        "app.services.prediction.inference.run_fincast_lora_inference",
+        return_value={"model_version": "fincast-lora:lora_adapter_best"},
+    ) as fincast_mock:
+        result = asyncio.get_event_loop().run_until_complete(
+            run_selected_inference(
+                ticker="CL=F",
+                sector="Unknown",
+                sector_etf="SPY",
+                forecast_model="fincast_lora",
+                settings=settings,
+            )
+        )
+
+    fincast_mock.assert_called_once_with("CL=F", "Unknown", "SPY", settings)
+    assert result["model_version"].startswith("fincast-lora:")
+
+
+def test_resolve_fincast_symbol_maps_yahoo_future_alias():
+    from app.services.prediction.inference import _resolve_fincast_symbol
+
+    assert _resolve_fincast_symbol("CL=F") == "CL"
+    assert _resolve_fincast_symbol("ES") == "ES"
+    assert _resolve_fincast_symbol("AAPL") is None

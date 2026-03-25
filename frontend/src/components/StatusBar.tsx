@@ -1,10 +1,9 @@
 import { useAnalysisStore } from '../store/analysisStore';
-import type { AnalysisStatus } from '../types';
+import type { AnalysisStatus, ForecastModel } from '../types';
 
-const STATUS_LABELS: Record<AnalysisStatus, { label: string; color: string }> = {
+const STATUS_LABELS: Record<Exclude<AnalysisStatus, 'predicting'>, { label: string; color: string }> = {
   idle: { label: 'READY', color: 'var(--text-muted)' },
   pending: { label: 'PENDING...', color: 'var(--accent-blue)' },
-  predicting: { label: 'RUNNING CHRONOS-2...', color: 'var(--accent-blue)' },
   round_1: { label: 'ROUND 1 — AGENT ANALYSIS', color: 'var(--accent-blue)' },
   round_2: { label: 'ROUND 2 — DEBATE', color: 'var(--accent-orange)' },
   round_3: { label: 'ROUND 3 — SYNTHESIS', color: 'var(--accent-purple)' },
@@ -13,10 +12,16 @@ const STATUS_LABELS: Record<AnalysisStatus, { label: string; color: string }> = 
 };
 
 const STEPS: AnalysisStatus[] = ['predicting', 'round_1', 'round_2', 'round_3', 'complete'];
+const MODEL_LABELS: Record<ForecastModel, string> = {
+  chronos: 'CHRONOS-2',
+  fincast_lora: 'FINCAST LORA',
+};
 
 export function StatusBar() {
-  const { status, ticker, error } = useAnalysisStore();
-  const config = STATUS_LABELS[status] ?? { label: status.toUpperCase(), color: 'var(--accent-blue)' };
+  const { status, ticker, error, forecastModel } = useAnalysisStore();
+  const config = status === 'predicting'
+    ? { label: `RUNNING ${MODEL_LABELS[forecastModel]}...`, color: 'var(--accent-blue)' }
+    : STATUS_LABELS[status] ?? { label: status.toUpperCase(), color: 'var(--accent-blue)' };
   const activeStep = STEPS.indexOf(status);
 
   if ((status as string) === 'idle') return null;

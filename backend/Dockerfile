@@ -19,11 +19,12 @@ RUN pip install --no-cache-dir --no-deps -e "./backend[test]" && \
 # Copy alpha model code (legacy architecture reference)
 COPY alpha_model/ ./alpha_model/
 
+# Install the FinCast runtime needed for ffm / LoRA inference.
+RUN pip install --no-cache-dir beartype einx utilsforecast CoLT5-attention jax jaxlib && \
+    pip install --no-cache-dir "git+https://github.com/vincent05r/FinCast-fts.git"
+
 # HuggingFace model cache directory
 ENV HF_HOME=/app/.hf_cache
-
-# Pre-download Chronos model at build time so it's baked into the image
-RUN python -c "from chronos import ChronosBoltPipeline; ChronosBoltPipeline.from_pretrained('amazon/chronos-bolt-base', device_map='cpu')"
 
 EXPOSE 8000
 

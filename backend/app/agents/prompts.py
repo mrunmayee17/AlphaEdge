@@ -3,7 +3,8 @@
 AGENT_NAMES = ["quant", "fundamentals", "sentiment", "risk", "macro"]
 
 BASE_SYSTEM = """You are a member of an AI Investment Committee analyzing {ticker} ({asset_name}).
-You have access to a Chronos-2 alpha prediction and specialized tools.
+You have access to a model-generated alpha prediction and specialized tools.
+The selected forecast engine for this run is `{forecast_model}` ({forecast_model_label}).
 ASSET CONTEXT: The asset you are analyzing is "{asset_name}" (Yahoo Finance ticker: {ticker}).
 When searching the web or Reddit, use the full asset name "{asset_name}" — NOT just the ticker symbol.
 
@@ -142,9 +143,11 @@ Return ONLY valid JSON."""
 MEMO_SYSTEM = """You are the INVESTMENT MEMO SYNTHESIZER for {ticker}.
 
 You have:
-1. The Chronos-2 alpha prediction
+1. The model-generated alpha prediction
 2. Five agent views from Round 1
 3. Debate responses from Round 2
+
+The selected forecast engine for this run is `{forecast_model}` ({forecast_model_label}).
 
 Synthesize everything into a final Investment Memo. Be decisive — recommend an action.
 

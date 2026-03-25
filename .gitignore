@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 .venv/
+.venv*/
 .test_env/
 __pycache__/
 *.pyc
@@ -26,6 +27,8 @@ build/
 models/*.pt
 models/*.pth
 models/*.onnx
+models/fincast_runtime*/
+models/fincast_runtime_local/
 
 # Data
 data/raw/
@@ -57,3 +60,6 @@ appendonlydir/
 
 # Colab artifacts
 *.zip
+
+# Local scratch scripts
+tmp_fincast_eval.py
