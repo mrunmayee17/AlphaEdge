@@ -141,10 +141,10 @@ Core flow:
 3. Extract claims and run cross-agent debate.
 4. Synthesize a final investment memo with recommendation and position sizing.
 
-Agentic flow diagram (current implementation):
-
-![Agentic system flow diagram](docs/figures/agentic_system_flow.svg)
-
+Agentic flow diagram:
+<p>
+  <img src="docs/figures/agentic_system_flow.svg" alt="Agentic system flow diagram" width="68%">
+</p>
 Source generator:
 
 ```bash
