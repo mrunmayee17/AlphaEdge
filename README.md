@@ -1,4 +1,4 @@
-# BAM
+# Alpha Edge
 
 ## FinCast Fine-Tune Metrics and Evaluation
 
