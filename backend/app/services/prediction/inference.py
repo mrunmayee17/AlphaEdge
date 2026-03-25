@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import shutil
+import threading
 import time
 import urllib.request
 import zipfile
@@ -27,6 +29,7 @@ logger = logging.getLogger(__name__)
 # Cached runtimes to avoid reloading on every request
 _pipeline_cache: dict[str, Any] = {}
 _fincast_runtime_cache: dict[str, "FincastRuntime"] = {}
+_fincast_runtime_lock = threading.Lock()
 
 # Forecast horizons (trading days)
 HORIZONS = [1, 5, 21, 63]
@@ -229,53 +232,57 @@ def _load_fincast_runtime(settings: "Settings") -> FincastRuntime:
     if cache_key in _fincast_runtime_cache:
         return _fincast_runtime_cache[cache_key]
 
-    try:
-        from ffm import FFM, FFmHparams
-    except ImportError as exc:
-        raise RuntimeError(
-            "FinCast runtime dependency missing: install the package that provides `ffm.FFM`."
-        ) from exc
+    with _fincast_runtime_lock:
+        if cache_key in _fincast_runtime_cache:
+            return _fincast_runtime_cache[cache_key]
 
-    try:
-        from peft import PeftModel
-    except ImportError as exc:
-        raise RuntimeError("FinCast LoRA requires the `peft` package in the backend environment.") from exc
+        try:
+            from ffm import FFM, FFmHparams
+        except ImportError as exc:
+            raise RuntimeError(
+                "FinCast runtime dependency missing: install the package that provides `ffm.FFM`."
+            ) from exc
 
-    backend_name = "gpu" if settings.fincast_device == "cuda" else "cpu"
-    hparams = FFmHparams(
-        backend=backend_name,
-        per_core_batch_size=1,
-        context_len=settings.fincast_context_length,
-        horizon_len=settings.fincast_step_horizon,
-        num_experts=settings.fincast_num_experts,
-        gating_top_n=settings.fincast_gating_top_n,
-        load_from_compile=True,
-        point_forecast_mode="mean",
-    )
-    api = FFM(hparams=hparams, checkpoint=str(checkpoint_path), loading_mode=0)
-    base_model = api._model
-    model = PeftModel.from_pretrained(base_model, adapter_path)
+        try:
+            from peft import PeftModel
+        except ImportError as exc:
+            raise RuntimeError("FinCast LoRA requires the `peft` package in the backend environment.") from exc
 
-    device = torch.device(settings.fincast_device)
-    model.to(device)
-    model.eval()
-    api._model = model
+        backend_name = "gpu" if settings.fincast_device == "cuda" else "cpu"
+        hparams = FFmHparams(
+            backend=backend_name,
+            per_core_batch_size=1,
+            context_len=settings.fincast_context_length,
+            horizon_len=settings.fincast_step_horizon,
+            num_experts=settings.fincast_num_experts,
+            gating_top_n=settings.fincast_gating_top_n,
+            load_from_compile=True,
+            point_forecast_mode="mean",
+        )
+        api = FFM(hparams=hparams, checkpoint=str(checkpoint_path), loading_mode=0)
+        base_model = api._model
+        model = PeftModel.from_pretrained(base_model, adapter_path)
 
-    quantiles = [float(q) for q in getattr(hparams, "quantiles", [])]
-    runtime = FincastRuntime(
-        model=model,
-        device=device,
-        context_len=settings.fincast_context_length,
-        step_horizon=settings.fincast_step_horizon,
-        q10_idx=_nearest_quantile_index(quantiles, 0.1),
-        q50_idx=_nearest_quantile_index(quantiles, 0.5),
-        q90_idx=_nearest_quantile_index(quantiles, 0.9),
-        adapter_path=adapter_path,
-        training_status=_load_json_if_exists(adapter_path.parent / "training_status.json"),
-    )
-    _fincast_runtime_cache[cache_key] = runtime
-    logger.info("Loaded FinCast LoRA runtime from %s", adapter_path)
-    return runtime
+        device = torch.device(settings.fincast_device)
+        model.to(device)
+        model.eval()
+        api._model = model
+
+        quantiles = [float(q) for q in getattr(hparams, "quantiles", [])]
+        runtime = FincastRuntime(
+            model=model,
+            device=device,
+            context_len=settings.fincast_context_length,
+            step_horizon=settings.fincast_step_horizon,
+            q10_idx=_nearest_quantile_index(quantiles, 0.1),
+            q50_idx=_nearest_quantile_index(quantiles, 0.5),
+            q90_idx=_nearest_quantile_index(quantiles, 0.9),
+            adapter_path=adapter_path,
+            training_status=_load_json_if_exists(adapter_path.parent / "training_status.json"),
+        )
+        _fincast_runtime_cache[cache_key] = runtime
+        logger.info("Loaded FinCast LoRA runtime from %s", adapter_path)
+        return runtime
 
 
 def _pick_quantile_column(quantile_chunk: np.ndarray, index: int | None, fallback: np.ndarray) -> np.ndarray:
@@ -344,16 +351,14 @@ async def run_chronos_inference(ticker: str, sector: str, sector_etf: str, model
     """Run Chronos-2 inference for a single ticker."""
     start_time = time.time()
 
-    pipeline = _load_pipeline(model_id)
-    returns = _fetch_returns(ticker, context_length=512)
+    pipeline = await asyncio.to_thread(_load_pipeline, model_id)
+    returns = await asyncio.to_thread(_fetch_returns, ticker, 512)
     context = torch.tensor(returns, dtype=torch.float32)
 
     max_horizon = max(HORIZONS)
-    forecast = pipeline.predict(
-        context,
-        prediction_length=max_horizon,
+    quantiles = await asyncio.to_thread(
+        lambda: pipeline.predict(context, prediction_length=max_horizon).squeeze(0).numpy()
     )
-    quantiles = forecast.squeeze(0).numpy()
 
     result: dict[str, Any] = {
         "ticker": ticker,
@@ -393,9 +398,14 @@ async def run_fincast_lora_inference(
         )
 
     start_time = time.time()
-    runtime = _load_fincast_runtime(settings)
-    returns = _fetch_returns(ticker, context_length=runtime.context_len)
-    q10_series, q50_series, q90_series = _rollout_fincast_forecast(runtime, returns, max(HORIZONS))
+    runtime = await asyncio.to_thread(_load_fincast_runtime, settings)
+    returns = await asyncio.to_thread(_fetch_returns, ticker, runtime.context_len)
+    q10_series, q50_series, q90_series = await asyncio.to_thread(
+        _rollout_fincast_forecast,
+        runtime,
+        returns,
+        max(HORIZONS),
+    )
 
     inferred_sector = sector if sector and sector != "Unknown" else FINCAST_ASSET_CLASS_MAP.get(symbol, "futures")
     training_status = runtime.training_status or {}
