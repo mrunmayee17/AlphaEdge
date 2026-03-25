@@ -130,6 +130,18 @@ Core flow:
 Agentic flow diagram (current implementation):
 
 ```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "background": "#f8fafc",
+    "primaryColor": "#e2e8f0",
+    "primaryTextColor": "#0f172a",
+    "primaryBorderColor": "#334155",
+    "lineColor": "#334155",
+    "secondaryColor": "#dbeafe",
+    "tertiaryColor": "#dcfce7"
+  }
+}}%%
 flowchart LR
     A[POST /api/v1/analysis] --> B[Create Redis session state: status=pending]
     B --> C[Background pipeline starts]
