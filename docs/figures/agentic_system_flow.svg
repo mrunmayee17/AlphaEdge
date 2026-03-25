@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1900" height="2200" viewBox="0 0 1900 2200">
 <rect width="100%" height="100%" fill="#ffffff"/>
-<text x="950" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#0f172a">Agentic System Flow (Current Implementation)</text>
-<text x="950" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#0f172a">Primary execution path is top-to-bottom</text>
+<text x="950" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#0f172a">Agentic System Flow</text>
 <rect x="735.0" y="120" width="430" height="72" rx="8" fill="#f8fafc" stroke="#334155" stroke-width="1.4"/>
 <text x="950.0" y="156.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#0f172a">
 <tspan x="950.0" dy="0">POST /api/v1/analysis</tspan>
@@ -103,7 +102,7 @@
 <line x1="950" y1="964" x2="950" y2="1020" stroke="#334155" stroke-width="1.6"/>
 <polygon points="950,1020 945.5,1011 954.5,1011" fill="#334155"/>
 <rect x="60" y="980" width="1780" height="1180" rx="14" fill="#f8fafc" stroke="#334155" stroke-width="1.2"/>
-<text x="950" y="1060" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#0f172a">Committee Rounds (top-to-bottom)</text>
+<text x="950" y="1060" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#0f172a">Committee Rounds</text>
 <rect x="735.0" y="1120" width="430" height="64" rx="8" fill="#f8fafc" stroke="#334155" stroke-width="1.4"/>
 <text x="950.0" y="1152.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#0f172a">
 <tspan x="950.0" dy="0">Prefetch tools + trace build</tspan>
@@ -118,7 +117,7 @@
 <polygon points="950,1210 945.5,1201 954.5,1201" fill="#334155"/>
 <rect x="90" y="1320" width="320" height="260" rx="8" fill="#e0f2fe" stroke="#334155" stroke-width="1.4"/>
 <text x="250.0" y="1428.4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">
-<tspan x="250.0" dy="0">Quantitative</tspan>
+<tspan x="250.0" dy="0">Agent 1: Quantitative</tspan>
 <tspan x="250.0" dy="16">- momentum &amp; volatility</tspan>
 <tspan x="250.0" dy="16">- alpha signal strength</tspan>
 <tspan x="250.0" dy="16">- technical context</tspan>
@@ -127,7 +126,7 @@
 <polygon points="250.0,1320 245.5,1311 254.5,1311" fill="#334155"/>
 <rect x="435" y="1320" width="320" height="260" rx="8" fill="#dcfce7" stroke="#334155" stroke-width="1.4"/>
 <text x="595.0" y="1428.4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">
-<tspan x="595.0" dy="0">Fundamentals</tspan>
+<tspan x="595.0" dy="0">Agent 2: Fundamentals</tspan>
 <tspan x="595.0" dy="16">- valuation and peers</tspan>
 <tspan x="595.0" dy="16">- financial health</tspan>
 <tspan x="595.0" dy="16">- earnings context</tspan>
@@ -136,7 +135,7 @@
 <polygon points="595.0,1320 590.5,1311 599.5,1311" fill="#334155"/>
 <rect x="780" y="1320" width="320" height="260" rx="8" fill="#fef3c7" stroke="#334155" stroke-width="1.4"/>
 <text x="940.0" y="1428.4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">
-<tspan x="940.0" dy="0">Sentiment</tspan>
+<tspan x="940.0" dy="0">Agent 3: Sentiment</tspan>
 <tspan x="940.0" dy="16">- news narrative</tspan>
 <tspan x="940.0" dy="16">- social/web pulse</tspan>
 <tspan x="940.0" dy="16">- positioning tone</tspan>
@@ -145,7 +144,7 @@
 <polygon points="940.0,1320 935.5,1311 944.5,1311" fill="#334155"/>
 <rect x="1125" y="1320" width="320" height="260" rx="8" fill="#fee2e2" stroke="#334155" stroke-width="1.4"/>
 <text x="1285.0" y="1428.4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">
-<tspan x="1285.0" dy="0">Risk Guardian</tspan>
+<tspan x="1285.0" dy="0">Agent 4: Risk Guardian</tspan>
 <tspan x="1285.0" dy="16">- tail risk / CVaR</tspan>
 <tspan x="1285.0" dy="16">- options positioning</tspan>
 <tspan x="1285.0" dy="16">- stress scenarios</tspan>
@@ -154,7 +153,7 @@
 <polygon points="1285.0,1320 1280.5,1311 1289.5,1311" fill="#334155"/>
 <rect x="1470" y="1320" width="320" height="260" rx="8" fill="#ede9fe" stroke="#334155" stroke-width="1.4"/>
 <text x="1630.0" y="1428.4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">
-<tspan x="1630.0" dy="0">Macro Regime</tspan>
+<tspan x="1630.0" dy="0">Agent 5: Macro Regime</tspan>
 <tspan x="1630.0" dy="16">- rates and curve shape</tspan>
 <tspan x="1630.0" dy="16">- risk-on/off regime</tspan>
 <tspan x="1630.0" dy="16">- cross-asset backdrop</tspan>

@@ -92,8 +92,7 @@ def main() -> None:
     s.append('<?xml version="1.0" encoding="UTF-8"?>')
     s.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">')
     s.append(f'<rect width="100%" height="100%" fill="{BG}"/>')
-    s.append(f'<text x="950" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="{TEXT}">Agentic System Flow (Current Implementation)</text>')
-    s.append(f'<text x="950" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="{TEXT}">Primary execution path is top-to-bottom</text>')
+    s.append(f'<text x="950" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="{TEXT}">Agentic System Flow</text>')
 
     # --- Top-to-bottom pipeline ---
     cx = 950
@@ -161,7 +160,7 @@ def main() -> None:
     # --- Committee rounds (top-to-bottom) ---
     panel_x, panel_y, panel_w, panel_h = 60, 980, 1780, 1180
     s.append(f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" rx="14" fill="{PANEL}" stroke="{STROKE}" stroke-width="1.2"/>')
-    s.append(f'<text x="950" y="1060" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="{TEXT}">Committee Rounds (top-to-bottom)</text>')
+    s.append(f'<text x="950" y="1060" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="{TEXT}">Committee Rounds</text>')
 
     y_prefetch = 1120
     y_agentview = 1210
@@ -178,11 +177,11 @@ def main() -> None:
     start = 90
     agent_centers: list[float] = []
     agent_boxes = [
-        ("Quantitative\n- momentum & volatility\n- alpha signal strength\n- technical context", AGENT_QUANT),
-        ("Fundamentals\n- valuation and peers\n- financial health\n- earnings context", AGENT_FUND),
-        ("Sentiment\n- news narrative\n- social/web pulse\n- positioning tone", AGENT_SENT),
-        ("Risk Guardian\n- tail risk / CVaR\n- options positioning\n- stress scenarios", AGENT_RISK),
-        ("Macro Regime\n- rates and curve shape\n- risk-on/off regime\n- cross-asset backdrop", AGENT_MACRO),
+        ("Agent 1: Quantitative\n- momentum & volatility\n- alpha signal strength\n- technical context", AGENT_QUANT),
+        ("Agent 2: Fundamentals\n- valuation and peers\n- financial health\n- earnings context", AGENT_FUND),
+        ("Agent 3: Sentiment\n- news narrative\n- social/web pulse\n- positioning tone", AGENT_SENT),
+        ("Agent 4: Risk Guardian\n- tail risk / CVaR\n- options positioning\n- stress scenarios", AGENT_RISK),
+        ("Agent 5: Macro Regime\n- rates and curve shape\n- risk-on/off regime\n- cross-asset backdrop", AGENT_MACRO),
     ]
     for i, (label, fill) in enumerate(agent_boxes):
         x = start + i * (aw + gap)

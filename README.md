@@ -123,7 +123,7 @@ python3 scripts/generate_fincast_eval_graphs.py
 - `docs/figures/fincast_eval_pooled_turnover.svg`
 - `docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg`
 - `docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg`
-- `docs/figures/agentic_system_flow_v2.svg`
+- `docs/figures/agentic_system_flow.svg`
 - `scripts/generate_agentic_flow_diagram.py`
 
 ## Agentic System Details
@@ -143,7 +143,7 @@ Core flow:
 
 Agentic flow diagram:
 <p>
-  <img src="docs/figures/agentic_system_flow_v2.svg" alt="Agentic system flow diagram" width="100%">
+  <img src="docs/figures/agentic_system_flow.svg" alt="Agentic system flow diagram" width="100%">
 </p>
 Source generator:
 
