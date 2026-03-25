@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="550.0" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" fill="#0f172a" font-weight="700">Pooled Directional Accuracy (Frozen vs Fine-tuned)</text>
+<line x1="100" y1="90" x2="100" y2="500" stroke="#334155" stroke-width="1.5"/>
+<line x1="100" y1="500" x2="1060" y2="500" stroke="#334155" stroke-width="1.5"/>
+<line x1="100" y1="500.00" x2="1060" y2="500.00" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4 4"/>
+<line x1="100" y1="500.00" x2="1060" y2="500.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="88" y="504.00" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#334155">0.0000</text>
+<line x1="100" y1="418.00" x2="1060" y2="418.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="88" y="422.00" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#334155">0.1300</text>
+<line x1="100" y1="336.00" x2="1060" y2="336.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="88" y="340.00" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#334155">0.2601</text>
+<line x1="100" y1="254.00" x2="1060" y2="254.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="88" y="258.00" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#334155">0.3901</text>
+<line x1="100" y1="172.00" x2="1060" y2="172.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="88" y="176.00" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#334155">0.5202</text>
+<line x1="100" y1="90.00" x2="1060" y2="90.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="88" y="94.00" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#334155">0.6502</text>
+<text x="26" y="295.0" text-anchor="middle" transform="rotate(-90 26,320)" font-family="Arial, sans-serif" font-size="14" fill="#334155">Directional Accuracy</text>
+<text x="340.00" y="534" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#0f172a">Validation</text>
+<rect x="277.84" y="170.76" width="56.00" height="329.24" fill="#64748b" rx="5"/>
+<text x="305.84" y="162.76" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">0.5222</text>
+<rect x="346.16" y="167.18" width="56.00" height="332.82" fill="#0ea5e9" rx="5"/>
+<text x="374.16" y="159.18" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">0.5278</text>
+<text x="820.00" y="534" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#0f172a">Holdout</text>
+<rect x="757.84" y="168.16" width="56.00" height="331.84" fill="#64748b" rx="5"/>
+<text x="785.84" y="160.16" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">0.5263</text>
+<rect x="826.16" y="133.93" width="56.00" height="366.07" fill="#0ea5e9" rx="5"/>
+<text x="854.16" y="125.93" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">0.5806</text>
+<rect x="810" y="48" width="14" height="14" fill="#64748b" rx="2"/>
+<text x="832" y="60" font-family="Arial, sans-serif" font-size="13" fill="#0f172a">Frozen FinCast</text>
+<rect x="810" y="72" width="14" height="14" fill="#0ea5e9" rx="2"/>
+<text x="832" y="84" font-family="Arial, sans-serif" font-size="13" fill="#0f172a">Fine-tuned LoRA</text>
+</svg>

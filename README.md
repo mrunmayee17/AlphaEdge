@@ -68,6 +68,36 @@ Notes:
 - Baseline files (`holdout_metrics.json`) and LoRA files (`custom_lora_*_metrics.json`) use different evaluation row counts, so compare as directional context, not a strict apples-to-apples leaderboard.
 - Some confidence/asset slices can be very small (especially `rates`), so pooled and major asset-class slices are the most stable.
 
+### Evaluation Graphs
+
+The graphs below are generated directly from the metrics JSON artifacts in `models/fincast_runtime_local`.
+
+Generation command:
+
+```bash
+python3 scripts/generate_fincast_eval_graphs.py
+```
+
+Pooled directional accuracy:
+
+![Pooled directional accuracy](docs/figures/fincast_eval_pooled_directional_accuracy.svg)
+
+Pooled rank IC:
+
+![Pooled rank IC](docs/figures/fincast_eval_pooled_rank_ic.svg)
+
+Pooled turnover proxy:
+
+![Pooled turnover proxy](docs/figures/fincast_eval_pooled_turnover.svg)
+
+Holdout directional accuracy by asset class:
+
+![Holdout directional accuracy by asset class](docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg)
+
+Holdout high-confidence directional accuracy slices:
+
+![Holdout high confidence directional accuracy](docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg)
+
 ### Artifact Files
 
 - `models/fincast_runtime_local/training_status.json`
@@ -77,6 +107,12 @@ Notes:
 - `models/fincast_runtime_local/frozen_vs_lora_comparison.json`
 - `models/fincast_runtime_local/custom_lora_history.csv`
 - `models/fincast_runtime_local/config_manifest.json`
+- `scripts/generate_fincast_eval_graphs.py`
+- `docs/figures/fincast_eval_pooled_directional_accuracy.svg`
+- `docs/figures/fincast_eval_pooled_rank_ic.svg`
+- `docs/figures/fincast_eval_pooled_turnover.svg`
+- `docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg`
+- `docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg`
 
 ## Agentic System Details
 
