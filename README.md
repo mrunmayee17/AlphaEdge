@@ -221,6 +221,82 @@ python3 scripts/generate_fincast_eval_graphs.py
 - `docs/figures/agentic_system_flow.svg`
 - `scripts/generate_agentic_flow_diagram.py`
 
+## PatchTST Metrics and Evaluation
+
+This section documents the current checked-in PatchTST artifact and how to run evaluation in this repo.
+
+### Checkpoint Snapshot
+
+- Artifact: `models/patch_tst_fold9.pt`
+- Checkpoint date: `2026-03-17`
+- Fold tag: `9`
+- Stored fields: `model_state_dict`, `config`, `fold`, `date`
+- Current checkpoint does **not** persist evaluation tables inside the `.pt` file (`metrics` are not embedded).
+
+Model config in this checkpoint:
+
+- `n_channels=23`
+- `context_len=250`
+- `patch_len=5`
+- `d_model=128`
+- `n_heads=8`
+- `n_layers=3`
+- `d_ff=256`
+- `dropout=0.2`
+- `d_static=64`
+- `d_mixer_hidden=512`
+- `d_mixer_out=256`
+- `mixer_dropout=0.3`
+
+### W&B Results (PatchTST)
+
+Source: local W&B CSV exports from `2026-03-25` (`wandb_export_2026-03-25T16_45_24.333-07_00.csv` through `wandb_export_2026-03-25T16_47_09.939-07_00.csv`).
+
+Values below are the latest non-empty values in each exported metric column.
+
+| Metric | fold_9 | fold_9_v2 |
+|---|---:|---:|
+| Best validation loss | 0.0220 | 0.1602 |
+| Final IC (1d) | 0.0071 | 0.0066 |
+| Final IC (5d) | 0.0269 | 0.0188 |
+| Final IC (21d) | 0.0677 | 0.0348 |
+| Final IC (63d) | 0.0725 | 0.0390 |
+| Final loss | 0.0220 | 0.1602 |
+
+Additional validation snapshot (latest logged step in export):
+
+| Metric | fold_9 | fold_9_v2 |
+|---|---:|---:|
+| Val IC (1d) | 0.0123 | 0.0154 |
+| Val IC (5d) | 0.0196 | 0.0246 |
+| Val IC (21d) | 0.0376 | 0.0480 |
+| Val IC (63d) | 0.0535 | 0.0497 |
+| Val loss | 0.0226 | 0.1731 |
+
+### Evaluation Protocol
+
+PatchTST evaluation is implemented in `alpha_model/evaluation/evaluate.py` and reports per horizon (`1d`, `5d`, `21d`, `63d`):
+
+- `IC (Spearman)`
+- `hit_rate` (sign agreement)
+- `long_short_spread` (top-decile minus bottom-decile actual return)
+- `pred_std` vs target std ratio
+- quantile calibration (`pct_below_q10`, `pct_above_q90`, `pct_in_80_band`)
+
+Run command:
+
+```bash
+.venv/bin/python -m alpha_model.evaluation.evaluate \
+  --model models/patch_tst_fold9.pt \
+  --test-year 2024 \
+  --device cpu
+```
+
+Notes:
+
+- This full run is CPU-heavy because it scores all rolling windows for the test-year setup.
+- The evaluator supports both v1 and v2 checkpoints (`target_mean/target_std` are auto-detected for v2).
+
 ## Agentic System Details
 ### Product Screenshots
 
