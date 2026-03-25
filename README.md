@@ -1,41 +1,88 @@
 # Alpha Edge
 
-## What This Repository Does
+Alpha Edge is an AI investment research app with two layers:
 
-Alpha Edge is an AI investment research system that combines time-series forecasting with a multi-agent investment committee.
+1. Forecasting layer: foundation-model forecasts (`chronos` or `fincast_lora`).
+2. Committee layer: 5 specialist agents (`quant`, `fundamentals`, `sentiment`, `risk`, `macro`) that debate and produce a final investment memo.
 
-At a high level, the repo gives you:
+## End-to-End Flow
 
-- A FastAPI backend that runs end-to-end analysis sessions for a ticker.
-- A React frontend dashboard that shows forecast output, agent views, debate results, and final memo.
-- Two forecast engines:
-  - `chronos` (Chronos-Bolt foundation model)
-  - `fincast_lora` (fine-tuned FinCast + LoRA adapter)
-- A 5-agent committee workflow (`quant`, `fundamentals`, `sentiment`, `risk`, `macro`) with debate and memo synthesis.
-- A backtest endpoint that evaluates prediction outputs with portfolio-style metrics.
-- FinCast LoRA training/evaluation utilities and saved run artifacts for reproducible experiments.
-- A PatchTST-based alpha modeling pipeline (`alpha_model/`) for feature engineering, walk-forward training, and evaluation.
+1. Frontend calls `POST /api/v1/analysis` with a ticker and `forecast_model`.
+2. Backend generates `1d`, `5d`, `21d`, `63d` alpha forecasts.
+3. 5 agents run in parallel with tool data (Yahoo, Brave, BrightData, FRED).
+4. Claims are checked, debated, and synthesized into an investment memo.
+5. Session state is stored in Redis and exposed via polling/WebSocket.
 
-### End-to-End Flow
+## Forecast Engines
 
-1. Client calls `POST /api/v1/analysis` with a ticker and forecast model.
-2. Backend computes alpha forecasts (`1d`, `5d`, `21d`, `63d`) from the selected engine.
-3. Five specialist agents run in parallel using market/tool data and the forecast payload.
-4. Claims are extracted, agents debate, and a final investment memo is synthesized.
-5. Session state is persisted in Redis and streamed/polled by the frontend until completion.
+### Chronos (`forecast_model="chronos"`)
 
-### Main Modules
+- Runtime model: `amazon/chronos-bolt-base` via `ChronosBoltPipeline`.
+- Input: recent log-return context (`context_length=512`).
+- Output: cumulative forecasts for `1d/5d/21d/63d` from Chronos quantiles.
+- Metadata: `model_version=chronos-2:<model_name>`, `training_fold=pretrained`.
 
-- `backend/`: FastAPI app, orchestrator, tool integrations, prediction inference, backtest API/engine.
-- `frontend/`: React + Vite UI for dashboard and backtest views.
-- `alpha_model/`: data prep, model training, and evaluation for both:
-  - PatchTST stack (`alpha_model/model/patch_tst.py`, `alpha_model/training/train_patchtst_v2.py`, `alpha_model/evaluation/evaluate.py`)
-  - FinCast workflow (`alpha_model/training/fincast_lora_colab.py`, `alpha_model/fincast/`)
-- `models/fincast_runtime_local/`: latest local fine-tune/evaluation artifacts.
-- `docs/`: project docs and FinCast fine-tuning guidance.
-- `external/FinCast-fts/`: vendored upstream FinCast codebase used by training/runtime workflows.
+### FinCast LoRA (`forecast_model="fincast_lora"`)
 
-### Core API Surface
+- Base checkpoint: `Vincent05R/FinCast` (`v1.pth`).
+- Adapter type: LoRA (`attn_mlp`, `r=8`, `alpha=16`, `dropout=0.05`, `train_base=false`).
+- Trained futures universe: `ES NQ RTY YM ZN ZB CL NG GC HG`.
+- Inference: iterative 5-step rollout to reach 63 trading days.
+
+## What Was Fine-Tuned
+
+### PatchTST work (custom alpha model stack)
+
+Implemented in `alpha_model/`:
+
+- Architecture: `PatchTST + StaticEncoder + CrossChannelMixer + QuantileHead`.
+- Targets: `alpha_1d`, `alpha_5d`, `alpha_21d`, `alpha_63d`.
+- Features: 23 channels (price/volume/vol/factor/macro + sector-neutral returns).
+- Context window: 250 days, patch length: 5.
+
+Training scripts:
+
+- `alpha_model/training/train_patchtst.py` (v1, walk-forward folds).
+- `alpha_model/training/train_patchtst_v2.py` (improved: stride sampling, warmup, horizon-weighted loss, channel dropout, target standardization).
+
+Checked-in artifact:
+
+- `models/patch_tst_fold9.pt` (saved on `2026-03-17`, fold `9`, v1-style config metadata).
+
+Note: PatchTST training/evaluation pipeline is in-repo, but current API inference routing is `chronos` or `fincast_lora`.
+
+### FinCast LoRA fine-tuning run (saved artifacts)
+
+Artifacts in `models/fincast_runtime_local/` show a completed custom LoRA run:
+
+- Run time (UTC): `2026-03-24T05:33:30.394853+00:00`
+- Trainer: `custom_peft_loop`
+- Best epoch: `3`
+- Selection metric: `rank_ic`
+- Best validation loss: `0.0003303606`
+- Split coverage: `2017-07-09` to `2026-03-17` (`2703` rows)
+- Splits:
+  - Train: `2017-07-09` to `2023-12-22`
+  - Validation: `2024-01-01` to `2024-12-25` (`1760` examples)
+  - Holdout: `2025-01-01` to `2025-12-25` (`1750` examples)
+  - Forward: `2025-12-26` to `2026-03-17`
+
+Holdout pooled metrics (frozen -> LoRA):
+
+- Directional accuracy: `0.5263 -> 0.5806` (`+0.0543`)
+- Rank IC: `-0.0016 -> 0.0692` (`+0.0707`)
+- Turnover proxy: `0.8057 -> 0.1080`
+
+## Repository Layout
+
+- `backend/`: FastAPI APIs, inference routing, committee orchestration, memo generation.
+- `frontend/`: React dashboard and backtest UI.
+- `alpha_model/`: PatchTST training/evaluation and FinCast data/training utilities.
+- `models/fincast_runtime_local/`: FinCast LoRA metrics and adapter artifacts.
+- `external/FinCast-fts/`: vendored upstream FinCast code.
+- `docs/`: guides and generated figures.
+
+## API Surface
 
 - `GET /health`
 - `POST /api/v1/analysis`
@@ -44,303 +91,31 @@ At a high level, the repo gives you:
 - `POST /api/v1/backtest`
 - `WS /api/v1/ws/analysis/{analysis_id}`
 
-## FinCast Fine-Tune Metrics and Evaluation
+## Quick Start
 
-This README documents the current checked-in FinCast LoRA artifacts in `models/fincast_runtime_local` and the current backend/frontend implementation behavior.
-
-### Quick Graphs
-
-<p>
-  <img src="docs/figures/fincast_eval_pooled_directional_accuracy.svg" alt="Pooled directional accuracy" width="32%">
-  <img src="docs/figures/fincast_eval_pooled_rank_ic.svg" alt="Pooled rank IC" width="32%">
-  <img src="docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg" alt="Holdout directional accuracy by asset class" width="32%">
-</p>
-
-### Run Snapshot
-
-- Run timestamp (UTC): `2026-03-24T05:33:30.394853+00:00`
-- Base model: frozen FinCast checkpoint (`v1.pth`)
-- Fine-tune type: LoRA (`lora_r=8`, `lora_alpha=16`, `dropout=0.05`, `attn_mlp` targets)
-- Selection metric: validation `rank_ic` (best epoch: `3`)
-- Best validation loss: `0.0003303606`
-- Target: 5-day forward return
-- Universe: `ES, NQ, RTY, YM, ZN, ZB, CL, NG, GC, HG`
-- Shared coverage: `2017-07-09` to `2026-03-17` (`2703` daily rows)
-- Splits:
-  - Train: `2017-07-09` to `2023-12-22`
-  - Validation: `2024-01-01` to `2024-12-25` (`1760` eval examples)
-  - Holdout: `2025-01-01` to `2025-12-25` (`1750` eval examples)
-  - Forward: `2025-12-26` to `2026-03-17` (`70` rows; not included in scored tables below)
-
-### Evaluation Protocol
-
-Metrics are computed in `alpha_model/training/fincast_lora_colab.py`:
-
-- `directional_accuracy`: sign agreement between prediction and target
-- `rank_ic`: per-date rank correlation, then mean over dates
-- `top_bottom_spread`: average top-minus-bottom bucket target spread per date
-- `turnover_proxy`: mean sign-change rate through time per symbol
-
-Reporting slices:
-
-- `pooled::all`
-- `asset_class::{commodities,equities,rates}`
-- `confidence_top_20pct::*` and `confidence_top_10pct::*` using `|prediction|` confidence filters
-- Anchored baseline folds use validation years `2021`, `2022`, `2023`, `2024`
-
-### Pooled Results (Frozen vs Fine-Tuned)
-
-| Split | Rows | Frozen DA | LoRA DA | DA Delta | Frozen Rank IC | LoRA Rank IC | Rank IC Delta | Frozen Spread | LoRA Spread | Spread Delta | Frozen Turnover | LoRA Turnover |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Validation | 1760 | 0.5222 | 0.5278 | +0.0057 | 0.0335 | 0.0208 | -0.0127 | 0.0034 | 0.0011 | -0.0023 | 0.8080 | 0.1623 |
-| Holdout | 1750 | 0.5263 | 0.5806 | +0.0543 | -0.0016 | 0.0692 | +0.0707 | -0.0039 | -0.0001 | +0.0038 | 0.8057 | 0.1080 |
-
-### Holdout Directional Accuracy by Asset Class
-
-| Slice | Frozen DA | LoRA DA | Delta |
-|---|---:|---:|---:|
-| Commodities | 0.5257 | 0.5629 | +0.0371 |
-| Equities | 0.5357 | 0.6514 | +0.1157 |
-| Rates | 0.5086 | 0.4743 | -0.0343 |
-
-### Holdout Confidence Slices (Directional Accuracy)
-
-| Slice | Frozen DA | LoRA DA | Delta | Rows (LoRA) |
-|---|---:|---:|---:|---:|
-| Top 20% confidence (all) | 0.4657 | 0.5914 | +0.1257 | 350 |
-| Top 10% confidence (all) | 0.4800 | 0.5886 | +0.1086 | 175 |
-
-### Baseline Context (Holdout, pooled::all)
-
-| Model | Directional Accuracy | Rank IC | Top-Bottom Spread | Turnover Proxy | Rows |
-|---|---:|---:|---:|---:|---:|
-| Zero | 0.0040 | 0.0000 | 0.6376 | 0.0000 | 3020 |
-| Momentum (5d) | 0.4825 | -0.0370 | -0.2793 | 0.3887 | 3020 |
-| Linear | 0.5669 | -0.0220 | -0.2698 | 0.0558 | 3020 |
-| Fine-tuned LoRA | 0.5806 | 0.0692 | -0.0001 | 0.1080 | 1750 |
-
-Notes:
-
-- Baseline files (`holdout_metrics.json`) and LoRA files (`custom_lora_*_metrics.json`) use different evaluation row counts, so compare as directional context, not a strict apples-to-apples leaderboard.
-- Some confidence/asset slices can be very small (especially `rates`), so pooled and major asset-class slices are the most stable.
-
-### Evaluation Graphs
-
-The graphs below are generated directly from the metrics JSON artifacts in `models/fincast_runtime_local`.
-
-Generation command:
+1. Backend
 
 ```bash
-python3 scripts/generate_fincast_eval_graphs.py
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e backend
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-<p>
-  <img src="docs/figures/fincast_eval_pooled_directional_accuracy.svg" alt="Pooled directional accuracy" width="32%">
-  <img src="docs/figures/fincast_eval_pooled_rank_ic.svg" alt="Pooled rank IC" width="32%">
-  <img src="docs/figures/fincast_eval_pooled_turnover.svg" alt="Pooled turnover proxy" width="32%">
-</p>
-<p>
-  <img src="docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg" alt="Holdout directional accuracy by asset class" width="49%">
-  <img src="docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg" alt="Holdout high confidence directional accuracy" width="49%">
-</p>
-
-### Artifact Files
-
-- `models/fincast_runtime_local/training_status.json`
-- `models/fincast_runtime_local/split_definition.json`
-- `models/fincast_runtime_local/frozen_fincast_summary.json`
-- `models/fincast_runtime_local/custom_lora_validation_metrics.json`
-- `models/fincast_runtime_local/custom_lora_holdout_metrics.json`
-- `models/fincast_runtime_local/frozen_vs_lora_comparison.json`
-- `models/fincast_runtime_local/custom_lora_history.csv`
-- `models/fincast_runtime_local/config_manifest.json`
-- `models/fincast_runtime_local/anchored_summary.json`
-- `models/fincast_runtime_local/holdout_metrics.json`
-- `scripts/generate_fincast_eval_graphs.py`
-- `docs/figures/fincast_eval_pooled_directional_accuracy.svg`
-- `docs/figures/fincast_eval_pooled_rank_ic.svg`
-- `docs/figures/fincast_eval_pooled_turnover.svg`
-- `docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg`
-- `docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg`
-- `docs/figures/agentic_system_flow.svg`
-- `scripts/generate_agentic_flow_diagram.py`
-
-## Agentic System Details
-### Product Screenshots
-
-<p>
-  <img src="docs/figures/ui_dashboard_header_forecast.png" alt="Alpha Edge dashboard with forecast controls" width="49%">
-</p>
-<p>
-  <img src="docs/figures/ui_agent_cards_panel.png" alt="Agent cards panel" width="49%">
-</p>
-<p>
-  <img src="docs/figures/ui_investment_memo_detail.png" alt="Investment memo detail panel" width="49%">
-</p>
-
-### System Overview
-
-This section reflects the current code path in `backend/app/api/endpoints/analysis.py` (as of March 25, 2026), not a future/target architecture.
-
-Alpha Edge runs a background async investment-committee workflow behind a FastAPI backend, with per-session state persisted in Redis.
-
-Core flow:
-
-1. Generate alpha forecasts from the selected forecast engine.
-2. Run 5 specialist agents in parallel (quant, fundamentals, sentiment, risk, macro).
-3. Extract claims and run cross-agent debate.
-4. Synthesize a final investment memo with recommendation and position sizing.
-
-Agentic flow diagram:
-<p>
-  <img src="docs/figures/agentic_system_flow.svg" alt="Agentic system flow diagram" width="100%">
-</p>
-Source generator:
+2. Frontend
 
 ```bash
-python3 scripts/generate_agentic_flow_diagram.py
+npm install
+npm run dev --prefix frontend
 ```
 
-Primary implementation files:
+3. Open `http://localhost:5173` and run an analysis.
 
-- `backend/app/api/endpoints/analysis.py`
-- `backend/app/agents/orchestrator.py`
-- `backend/app/agents/tools.py`
-- `backend/app/agents/prompts.py`
-- `backend/app/models/schemas.py`
+Required env vars are defined in `backend/app/config.py` (Nemotron, Redis, Brave, BrightData, FRED, and optional FinCast artifact paths).
 
-### Forecast Engines (Chronos-2 + FinCast LoRA)
+## More Detail
 
-The API supports two forecast engines via `forecast_model`:
-
-- `chronos`
-- `fincast_lora`
-
-Repos/models used:
-
-- Chronos code repo: [amazon-science/chronos-forecasting](https://github.com/amazon-science/chronos-forecasting)
-- Chronos model ID used by backend default: [`amazon/chronos-bolt-base`](https://huggingface.co/amazon/chronos-bolt-base)
-- FinCast training/code repo used by the Colab pipeline: [vincent05r/FinCast-fts](https://github.com/vincent05r/FinCast-fts)
-- FinCast checkpoint source used by the training runner: [`Vincent05R/FinCast` (`v1.pth`)](https://huggingface.co/Vincent05R/FinCast)
-
-Chronos path details (`forecast_model="chronos"`):
-
-- UI/agent prompts label this option as "Chronos-2", while implementation loads `ChronosBoltPipeline` from the configured model ID (default: `amazon/chronos-bolt-base`).
-- Inference is based on log-return context with `context_length=512`.
-- Forecast horizon is rolled up to `1d`, `5d`, `21d`, and `63d`.
-- Uses Chronos quantiles (`0.1..0.9`) and maps:
-  - `q10` = index `0`
-  - `q50` = index `4` (point alpha)
-  - `q90` = index `8`
-- Output includes:
-  - `alpha_1d/5d/21d/63d`
-  - `q10_*` and `q90_*` bands
-  - `model_version="chronos-2:<model_name>"`
-  - `training_fold="pretrained"`
-- Current implementation sets `patch_attention=[]` and `top_features=[]` (no populated interpretability payload yet).
-
-Fine-tuned FinCast LoRA details (`forecast_model="fincast_lora"`):
-
-- Loads base FinCast checkpoint + LoRA adapter at runtime.
-- Supports the trained futures universe:
-  - `ES, NQ, RTY, YM, ZN, ZB, CL, NG, GC, HG`
-- Uses iterative rollout with step horizon (`fincast_step_horizon`, default `5`) to reach `63d`.
-- Uses adapter metadata for run provenance (`training_status.json` / best epoch info).
-- Current implementation also sets `patch_attention=[]` and `top_features=[]`.
-
-Fallback behavior:
-
-- If `chronos` inference fails during analysis, pipeline falls back to a placeholder forecast payload and continues.
-- If `fincast_lora` is explicitly selected and fails, it raises an error (no silent fallback).
-
-Primary implementation file:
-
-- `backend/app/services/prediction/inference.py`
-
-### Agent Roles and Tooling
-
-Agents:
-
-- `quant`: price and alpha signal interpretation
-- `fundamentals`: valuation, statements, analyst estimates
-- `sentiment`: web/reddit/news extraction
-- `risk`: options, short interest, VaR/CVaR, stress scenarios
-- `macro`: yield curve, macro market proxies, regime detection
-
-Data/tool sources used by tools:
-
-- Yahoo Finance (prices, fundamentals, options, short interest)
-- Brave Search (web/news)
-- Bright Data (Reddit)
-- FRED (rates/yield curve)
-
-Tool registry and assignments:
-
-- `backend/app/agents/tools.py` (`AGENT_TOOLS`)
-
-Failure behavior:
-
-- Tool failures are returned as structured error payloads (dicts) and analysis proceeds with partial data.
-- This is intentional graceful degradation at the tool layer.
-
-### Hallucination Guardrails
-
-Guardrail strategy:
-
-- Every pre-fetched tool result is stored in `trace` events.
-- Agent evidence is checked against actual tool traces.
-- Mismatches trigger correction prompts and a repair pass before downstream rounds.
-
-Validation logic:
-
-- Missing tool call for cited evidence = error.
-- Value mismatch vs tool payload = warning.
-
-Primary file:
-
-- `backend/app/core/hallucination_guard.py`
-
-### API and Streaming Contract
-
-Base API prefix:
-
-- `/api/v1`
-
-Main analysis endpoints:
-
-- `POST /analysis` starts a new session.
-- `GET /analysis/{analysis_id}` returns full current state.
-- `GET /analysis/{analysis_id}/memo` returns final memo when complete.
-- `WS /ws/analysis/{analysis_id}` streams status and deltas.
-
-WebSocket event types:
-
-- `status_update`
-- `alpha_prediction`
-- `agent_view`
-- `agent_debate`
-- `memo`
-- `error`
-
-Primary files:
-
-- `backend/app/api/endpoints/analysis.py`
-- `backend/app/api/endpoints/websocket.py`
-
-### Reliability and Observability
-
-Operational characteristics:
-
-- Redis-backed session state with TTL (`redis_session_ttl_seconds`).
-- Startup health checks for Redis, Nemotron, Brave, FRED (Yahoo is non-fatal due to possible rate limits).
-- OpenTelemetry tracing spans across predict/rounds/debate/memo synthesis.
-- Frontend currently uses REST polling (`pollStatus` every 2s) for live progress updates.
-- A WebSocket backend endpoint and client helper exist, but the current store/page flow is polling-first.
-- `backend/app/core/circuit_breaker.py` defines breakers, but they are not currently wired into the main request path.
-
-Primary files:
-
-- `backend/app/main.py`
-- `backend/app/config.py`
-- `backend/app/core/observability.py`
-- `frontend/src/api/websocket.ts`
+- FinCast guide: `docs/fincast_futures_lora_guide.md`
+- FinCast LoRA runner: `alpha_model/training/fincast_lora_colab.py`
+- Forecast inference routing: `backend/app/services/prediction/inference.py`
+- Committee pipeline: `backend/app/api/endpoints/analysis.py`
