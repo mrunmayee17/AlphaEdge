@@ -143,7 +143,7 @@ Core flow:
 
 Agentic flow diagram:
 <p>
-  <img src="docs/figures/agentic_system_flow.svg" alt="Agentic system flow diagram" width="68%">
+  <img src="docs/figures/agentic_system_flow.svg" alt="Agentic system flow diagram" width="100%">
 </p>
 Source generator:
 
