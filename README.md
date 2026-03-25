@@ -1,5 +1,49 @@
 # Alpha Edge
 
+## What This Repository Does
+
+Alpha Edge is an AI investment research system that combines time-series forecasting with a multi-agent investment committee.
+
+At a high level, the repo gives you:
+
+- A FastAPI backend that runs end-to-end analysis sessions for a ticker.
+- A React frontend dashboard that shows forecast output, agent views, debate results, and final memo.
+- Two forecast engines:
+  - `chronos` (Chronos-Bolt foundation model)
+  - `fincast_lora` (fine-tuned FinCast + LoRA adapter)
+- A 5-agent committee workflow (`quant`, `fundamentals`, `sentiment`, `risk`, `macro`) with debate and memo synthesis.
+- A backtest endpoint that evaluates prediction outputs with portfolio-style metrics.
+- FinCast LoRA training/evaluation utilities and saved run artifacts for reproducible experiments.
+- A PatchTST-based alpha modeling pipeline (`alpha_model/`) for feature engineering, walk-forward training, and evaluation.
+
+### End-to-End Flow
+
+1. Client calls `POST /api/v1/analysis` with a ticker and forecast model.
+2. Backend computes alpha forecasts (`1d`, `5d`, `21d`, `63d`) from the selected engine.
+3. Five specialist agents run in parallel using market/tool data and the forecast payload.
+4. Claims are extracted, agents debate, and a final investment memo is synthesized.
+5. Session state is persisted in Redis and streamed/polled by the frontend until completion.
+
+### Main Modules
+
+- `backend/`: FastAPI app, orchestrator, tool integrations, prediction inference, backtest API/engine.
+- `frontend/`: React + Vite UI for dashboard and backtest views.
+- `alpha_model/`: data prep, model training, and evaluation for both:
+  - PatchTST stack (`alpha_model/model/patch_tst.py`, `alpha_model/training/train_patchtst_v2.py`, `alpha_model/evaluation/evaluate.py`)
+  - FinCast workflow (`alpha_model/training/fincast_lora_colab.py`, `alpha_model/fincast/`)
+- `models/fincast_runtime_local/`: latest local fine-tune/evaluation artifacts.
+- `docs/`: project docs and FinCast fine-tuning guidance.
+- `external/FinCast-fts/`: vendored upstream FinCast codebase used by training/runtime workflows.
+
+### Core API Surface
+
+- `GET /health`
+- `POST /api/v1/analysis`
+- `GET /api/v1/analysis/{analysis_id}`
+- `GET /api/v1/analysis/{analysis_id}/memo`
+- `POST /api/v1/backtest`
+- `WS /api/v1/ws/analysis/{analysis_id}`
+
 ## FinCast Fine-Tune Metrics and Evaluation
 
 This README documents the current checked-in FinCast LoRA artifacts in `models/fincast_runtime_local` and the current backend/frontend implementation behavior.
@@ -18,12 +62,15 @@ This README documents the current checked-in FinCast LoRA artifacts in `models/f
 - Base model: frozen FinCast checkpoint (`v1.pth`)
 - Fine-tune type: LoRA (`lora_r=8`, `lora_alpha=16`, `dropout=0.05`, `attn_mlp` targets)
 - Selection metric: validation `rank_ic` (best epoch: `3`)
+- Best validation loss: `0.0003303606`
 - Target: 5-day forward return
 - Universe: `ES, NQ, RTY, YM, ZN, ZB, CL, NG, GC, HG`
+- Shared coverage: `2017-07-09` to `2026-03-17` (`2703` daily rows)
 - Splits:
   - Train: `2017-07-09` to `2023-12-22`
-  - Validation: `2024-01-01` to `2024-12-25`
-  - Holdout: `2025-01-01` to `2025-12-25`
+  - Validation: `2024-01-01` to `2024-12-25` (`1760` eval examples)
+  - Holdout: `2025-01-01` to `2025-12-25` (`1750` eval examples)
+  - Forward: `2025-12-26` to `2026-03-17` (`70` rows; not included in scored tables below)
 
 ### Evaluation Protocol
 
@@ -39,6 +86,7 @@ Reporting slices:
 - `pooled::all`
 - `asset_class::{commodities,equities,rates}`
 - `confidence_top_20pct::*` and `confidence_top_10pct::*` using `|prediction|` confidence filters
+- Anchored baseline folds use validation years `2021`, `2022`, `2023`, `2024`
 
 ### Pooled Results (Frozen vs Fine-Tuned)
 
@@ -99,12 +147,15 @@ python3 scripts/generate_fincast_eval_graphs.py
 ### Artifact Files
 
 - `models/fincast_runtime_local/training_status.json`
+- `models/fincast_runtime_local/split_definition.json`
 - `models/fincast_runtime_local/frozen_fincast_summary.json`
 - `models/fincast_runtime_local/custom_lora_validation_metrics.json`
 - `models/fincast_runtime_local/custom_lora_holdout_metrics.json`
 - `models/fincast_runtime_local/frozen_vs_lora_comparison.json`
 - `models/fincast_runtime_local/custom_lora_history.csv`
 - `models/fincast_runtime_local/config_manifest.json`
+- `models/fincast_runtime_local/anchored_summary.json`
+- `models/fincast_runtime_local/holdout_metrics.json`
 - `scripts/generate_fincast_eval_graphs.py`
 - `docs/figures/fincast_eval_pooled_directional_accuracy.svg`
 - `docs/figures/fincast_eval_pooled_rank_ic.svg`
