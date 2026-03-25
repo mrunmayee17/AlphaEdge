@@ -15,12 +15,16 @@ This README documents the current checked-in FinCast LoRA artifacts in `models/f
 ### Product Screenshots
 
 <p>
-  <img src="docs/figures/ui_dashboard_header_forecast.png" alt="Alpha Edge dashboard with forecast controls" width="49%">
   <img src="docs/figures/ui_agent_analysis_full.png" alt="Alpha Edge full agent analysis view" width="49%">
 </p>
 <p>
-  <img src="docs/figures/ui_investment_memo_detail.png" alt="Investment memo detail panel" width="49%">
+  <img src="docs/figures/ui_dashboard_header_forecast.png" alt="Alpha Edge dashboard with forecast controls" width="49%">
+</p>
+<p>
   <img src="docs/figures/ui_agent_cards_panel.png" alt="Agent cards panel" width="49%">
+</p>
+<p>
+  <img src="docs/figures/ui_investment_memo_detail.png" alt="Investment memo detail panel" width="49%">
 </p>
 
 ### Run Snapshot
