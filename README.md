@@ -77,3 +77,144 @@ Notes:
 - `models/fincast_runtime_local/frozen_vs_lora_comparison.json`
 - `models/fincast_runtime_local/custom_lora_history.csv`
 - `models/fincast_runtime_local/config_manifest.json`
+
+## Agentic System Details
+
+### System Overview
+
+Alpha Edge runs an agentic investment-committee pipeline behind a FastAPI backend.
+
+Core flow:
+
+1. Generate alpha forecasts from the selected forecast engine.
+2. Run 5 specialist agents in parallel (quant, fundamentals, sentiment, risk, macro).
+3. Extract claims and run cross-agent debate.
+4. Synthesize a final investment memo with recommendation and position sizing.
+
+Primary implementation files:
+
+- `backend/app/api/endpoints/analysis.py`
+- `backend/app/agents/orchestrator.py`
+- `backend/app/agents/tools.py`
+- `backend/app/agents/prompts.py`
+- `backend/app/models/schemas.py`
+
+### Forecast Engines (Chronos-2 + FinCast LoRA)
+
+The API supports two forecast engines via `forecast_model`:
+
+- `chronos`
+- `fincast_lora`
+
+Chronos-2 details (`forecast_model="chronos"`):
+
+- Runtime uses `amazon/chronos-bolt-base` by default (`chronos_model_id` in settings).
+- Inference is based on log-return context with `context_length=512`.
+- Forecast horizon is rolled up to `1d`, `5d`, `21d`, and `63d`.
+- Uses Chronos quantiles (`0.1..0.9`) and maps:
+  - `q10` = index `0`
+  - `q50` = index `4` (point alpha)
+  - `q90` = index `8`
+- Output includes:
+  - `alpha_1d/5d/21d/63d`
+  - `q10_*` and `q90_*` bands
+  - `model_version="chronos-2:<model_name>"`
+  - `training_fold="pretrained"`
+
+Fine-tuned FinCast LoRA details (`forecast_model="fincast_lora"`):
+
+- Loads base FinCast checkpoint + LoRA adapter at runtime.
+- Supports the trained futures universe:
+  - `ES, NQ, RTY, YM, ZN, ZB, CL, NG, GC, HG`
+- Uses iterative rollout with step horizon (`fincast_step_horizon`, default `5`) to reach `63d`.
+- Uses adapter metadata for run provenance (`training_status.json` / best epoch info).
+
+Fallback behavior:
+
+- If `chronos` inference fails during analysis, pipeline falls back to a placeholder forecast and continues.
+- If `fincast_lora` is explicitly selected and fails, it raises an error (no silent fallback).
+
+Primary implementation file:
+
+- `backend/app/services/prediction/inference.py`
+
+### Agent Roles and Tooling
+
+Agents:
+
+- `quant`: price and alpha signal interpretation
+- `fundamentals`: valuation, statements, analyst estimates
+- `sentiment`: web/reddit/news extraction
+- `risk`: options, short interest, VaR/CVaR, stress scenarios
+- `macro`: yield curve, macro market proxies, regime detection
+
+Data/tool sources used by tools:
+
+- Yahoo Finance (prices, fundamentals, options, short interest)
+- Brave Search (web/news)
+- Bright Data (Reddit)
+- FRED (rates/yield curve)
+
+Tool registry and assignments:
+
+- `backend/app/agents/tools.py` (`AGENT_TOOLS`)
+
+### Hallucination Guardrails
+
+Guardrail strategy:
+
+- Every pre-fetched tool result is stored in `trace` events.
+- Agent evidence is checked against actual tool traces.
+- Mismatches trigger correction prompts and a repair pass before downstream rounds.
+
+Validation logic:
+
+- Missing tool call for cited evidence = error.
+- Value mismatch vs tool payload = warning.
+
+Primary file:
+
+- `backend/app/core/hallucination_guard.py`
+
+### API and Streaming Contract
+
+Base API prefix:
+
+- `/api/v1`
+
+Main analysis endpoints:
+
+- `POST /analysis` starts a new session.
+- `GET /analysis/{analysis_id}` returns full current state.
+- `GET /analysis/{analysis_id}/memo` returns final memo when complete.
+- `WS /ws/analysis/{analysis_id}` streams status and deltas.
+
+WebSocket event types:
+
+- `status_update`
+- `alpha_prediction`
+- `agent_view`
+- `agent_debate`
+- `memo`
+- `error`
+
+Primary files:
+
+- `backend/app/api/endpoints/analysis.py`
+- `backend/app/api/endpoints/websocket.py`
+
+### Reliability and Observability
+
+Operational characteristics:
+
+- Redis-backed session state with TTL (`redis_session_ttl_seconds`).
+- Startup health checks for Redis, Nemotron, Brave, FRED (Yahoo is non-fatal due to possible rate limits).
+- OpenTelemetry tracing spans across predict/rounds/debate/memo synthesis.
+- Frontend supports WebSocket streaming and REST polling fallback.
+
+Primary files:
+
+- `backend/app/main.py`
+- `backend/app/config.py`
+- `backend/app/core/observability.py`
+- `frontend/src/api/websocket.ts`
