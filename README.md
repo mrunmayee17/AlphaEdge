@@ -6,11 +6,11 @@ This README documents the current checked-in FinCast LoRA artifacts in `models/f
 
 ### Quick Graphs
 
-![Pooled directional accuracy](docs/figures/fincast_eval_pooled_directional_accuracy.svg)
-
-![Pooled rank IC](docs/figures/fincast_eval_pooled_rank_ic.svg)
-
-![Holdout directional accuracy by asset class](docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg)
+<p>
+  <img src="docs/figures/fincast_eval_pooled_directional_accuracy.svg" alt="Pooled directional accuracy" width="32%">
+  <img src="docs/figures/fincast_eval_pooled_rank_ic.svg" alt="Pooled rank IC" width="32%">
+  <img src="docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg" alt="Holdout directional accuracy by asset class" width="32%">
+</p>
 
 ### Run Snapshot
 
@@ -86,25 +86,15 @@ Generation command:
 python3 scripts/generate_fincast_eval_graphs.py
 ```
 
-Pooled directional accuracy:
-
-![Pooled directional accuracy](docs/figures/fincast_eval_pooled_directional_accuracy.svg)
-
-Pooled rank IC:
-
-![Pooled rank IC](docs/figures/fincast_eval_pooled_rank_ic.svg)
-
-Pooled turnover proxy:
-
-![Pooled turnover proxy](docs/figures/fincast_eval_pooled_turnover.svg)
-
-Holdout directional accuracy by asset class:
-
-![Holdout directional accuracy by asset class](docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg)
-
-Holdout high-confidence directional accuracy slices:
-
-![Holdout high confidence directional accuracy](docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg)
+<p>
+  <img src="docs/figures/fincast_eval_pooled_directional_accuracy.svg" alt="Pooled directional accuracy" width="32%">
+  <img src="docs/figures/fincast_eval_pooled_rank_ic.svg" alt="Pooled rank IC" width="32%">
+  <img src="docs/figures/fincast_eval_pooled_turnover.svg" alt="Pooled turnover proxy" width="32%">
+</p>
+<p>
+  <img src="docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg" alt="Holdout directional accuracy by asset class" width="49%">
+  <img src="docs/figures/fincast_eval_holdout_confidence_directional_accuracy.svg" alt="Holdout high confidence directional accuracy" width="49%">
+</p>
 
 ### Artifact Files
 
