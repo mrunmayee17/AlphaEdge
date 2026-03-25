@@ -12,18 +12,6 @@ This README documents the current checked-in FinCast LoRA artifacts in `models/f
   <img src="docs/figures/fincast_eval_holdout_asset_class_directional_accuracy.svg" alt="Holdout directional accuracy by asset class" width="32%">
 </p>
 
-### Product Screenshots
-
-<p>
-  <img src="docs/figures/ui_dashboard_header_forecast.png" alt="Alpha Edge dashboard with forecast controls" width="49%">
-</p>
-<p>
-  <img src="docs/figures/ui_agent_cards_panel.png" alt="Agent cards panel" width="49%">
-</p>
-<p>
-  <img src="docs/figures/ui_investment_memo_detail.png" alt="Investment memo detail panel" width="49%">
-</p>
-
 ### Run Snapshot
 
 - Run timestamp (UTC): `2026-03-24T05:33:30.394853+00:00`
@@ -127,6 +115,17 @@ python3 scripts/generate_fincast_eval_graphs.py
 - `scripts/generate_agentic_flow_diagram.py`
 
 ## Agentic System Details
+### Product Screenshots
+
+<p>
+  <img src="docs/figures/ui_dashboard_header_forecast.png" alt="Alpha Edge dashboard with forecast controls" width="49%">
+</p>
+<p>
+  <img src="docs/figures/ui_agent_cards_panel.png" alt="Agent cards panel" width="49%">
+</p>
+<p>
+  <img src="docs/figures/ui_investment_memo_detail.png" alt="Investment memo detail panel" width="49%">
+</p>
 
 ### System Overview
 
