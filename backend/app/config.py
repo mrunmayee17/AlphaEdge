@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # Chronos-2 time-series foundation model (HuggingFace ID)
     chronos_model_id: str = "amazon/chronos-bolt-base"
+    hf_token: str = ""
 
     # Fine-tuned FinCast LoRA runtime
     fincast_checkpoint_path: str = ""

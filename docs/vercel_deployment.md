@@ -37,6 +37,7 @@ Set backend environment variables:
     - `FINCAST_CHECKPOINT_URL=<https://.../v1.pth>`
     - `FINCAST_RESULTS_ZIP_URL=<https://.../fincast_results.zip>`
     - optional `FINCAST_DOWNLOAD_TIMEOUT_SECONDS=1800`
+    - if URL is private on Hugging Face: `HF_TOKEN=<token with read access>`
   - optional: `FINCAST_ADAPTER_SUBDIR=lora_adapter_best`
 
 ## 3. Smoke Test

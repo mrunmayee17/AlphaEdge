@@ -143,12 +143,15 @@ def _resolve_artifact_path(configured_path: str, default_name: str, settings: "S
     return (_default_fincast_artifact_dir(settings) / default_name).resolve()
 
 
-def _download_artifact(url: str, destination: Path, *, timeout_seconds: int, label: str) -> None:
+def _download_artifact(url: str, destination: Path, *, timeout_seconds: int, label: str, hf_token: str = "") -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     partial_path = destination.with_suffix(destination.suffix + ".part")
     logger.info("Downloading %s from %s to %s", label, url, destination)
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "alpha-edge-fincast/1.0"})
+        headers = {"User-Agent": "alpha-edge-fincast/1.0"}
+        if hf_token and "huggingface.co" in url:
+            headers["Authorization"] = f"Bearer {hf_token}"
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=timeout_seconds) as response, partial_path.open("wb") as out:
             shutil.copyfileobj(response, out)
         partial_path.replace(destination)
@@ -178,6 +181,7 @@ def _resolve_fincast_adapter_dir(settings: "Settings") -> Path:
             zip_path,
             timeout_seconds=settings.fincast_download_timeout_seconds,
             label="FINCAST_RESULTS_ZIP",
+            hf_token=settings.hf_token,
         )
 
     extract_root = Path(settings.fincast_extract_dir).expanduser().resolve()
@@ -217,6 +221,7 @@ def _load_fincast_runtime(settings: "Settings") -> FincastRuntime:
             checkpoint_path,
             timeout_seconds=settings.fincast_download_timeout_seconds,
             label="FINCAST_CHECKPOINT",
+            hf_token=settings.hf_token,
         )
 
     adapter_path = _resolve_fincast_adapter_dir(settings)
