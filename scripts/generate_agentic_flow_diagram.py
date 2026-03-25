@@ -7,7 +7,8 @@ from html import escape
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "docs" / "figures" / "agentic_system_flow.svg"
+OUT = ROOT / "docs" / "figures" / "agentic_system_flow_v2.svg"
+LEGACY_OUT = ROOT / "docs" / "figures" / "agentic_system_flow.svg"
 
 
 def box(x: float, y: float, w: float, h: float, text: str, fill: str = "#f8fafc", fs: int = 13) -> str:
@@ -158,7 +159,10 @@ def main() -> None:
     s.append(poly_arrow([(2050, 71), (2050, 290), (430, 290), (430, 410)]))
 
     s.append('</svg>')
-    OUT.write_text("\n".join(s), encoding="utf-8")
+    svg = "\n".join(s)
+    OUT.write_text(svg, encoding="utf-8")
+    # Keep legacy path in sync for older links and local references.
+    LEGACY_OUT.write_text(svg, encoding="utf-8")
     print(f"Wrote {OUT}")
 
 
