@@ -102,8 +102,6 @@ Holdout pooled metrics (frozen -> LoRA):
 
 ## FinCast Fine-Tune Metrics and Evaluation
 
-This README documents the current checked-in FinCast LoRA artifacts in `models/fincast_runtime_local` and the current backend/frontend implementation behavior.
-
 ### Quick Graphs
 
 <p>
@@ -232,7 +230,7 @@ python3 scripts/generate_fincast_eval_graphs.py
 
 ## PatchTST Metrics and Evaluation
 
-This section documents the current checked-in PatchTST artifact and how to run evaluation in this repo.
+PatchTST artifact and how to run evaluation in this repo.
 
 ### Checkpoint Snapshot
 
@@ -307,10 +305,6 @@ Run command:
   --device cpu
 ```
 
-Notes:
-
-- This full run is CPU-heavy because it scores all rolling windows for the test-year setup.
-- The evaluator supports both v1 and v2 checkpoints (`target_mean/target_std` are auto-detected for v2).
 
 ## Agentic System Details
 ### Product Screenshots
