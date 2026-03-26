@@ -151,6 +151,15 @@ Reporting slices:
 | Validation | 1760 | 0.5222 | 0.5278 | +0.0057 | 0.0335 | 0.0208 | -0.0127 | 0.0034 | 0.0011 | -0.0023 | 0.8080 | 0.1623 |
 | Holdout | 1750 | 0.5263 | 0.5806 | +0.0543 | -0.0016 | 0.0692 | +0.0707 | -0.0039 | -0.0001 | +0.0038 | 0.8057 | 0.1080 |
 
+### Why FinCast LoRA Was Chosen
+
+Succinctly, we chose FinCast LoRA because it gave the best risk-adjusted practical outcome among tested options:
+
+- Versus frozen FinCast on holdout, LoRA improved directional accuracy (`+0.0543`) and rank IC (`+0.0707`).
+- Versus simple baselines, LoRA achieved the strongest pooled directional accuracy in this run context.
+- Adapter fine-tuning (`LoRA`) kept training/inference lightweight and reproducible, without full-model fine-tune cost.
+- In production, it complements Chronos as the futures-specialized forecast path.
+
 ### Holdout Directional Accuracy by Asset Class
 
 | Slice | Frozen DA | LoRA DA | Delta |
@@ -273,6 +282,12 @@ Additional validation snapshot (latest logged step in export):
 | Val IC (63d) | 0.0535 | 0.0497 |
 | Val loss | 0.0226 | 0.1731 |
 
+### fold_9 vs fold_9_v2 (Comparative Read)
+
+- `fold_9` is stronger on final metrics in this export set: lower final loss (`0.0220` vs `0.1602`) and higher final IC on `5d/21d/63d`.
+- `fold_9_v2` shows slightly better short-horizon validation IC at the latest logged step (`1d`, `5d`, `21d`), but with materially higher loss.
+- Net read: for this dataset/run slice, `fold_9` is the more stable checkpoint; `fold_9_v2` looks like an experimental variant that needs retuning.
+
 ### Evaluation Protocol
 
 PatchTST evaluation is implemented in `alpha_model/evaluation/evaluate.py` and reports per horizon (`1d`, `5d`, `21d`, `63d`):
@@ -390,6 +405,11 @@ Primary implementation file:
 - `backend/app/services/prediction/inference.py`
 
 ### Agent Roles and Tooling
+
+Agent LLM model (current backend default):
+
+- Provider/client: NVIDIA Nemotron via OpenAI-compatible API (`NemotronClient`)
+- Model ID: `nvidia/nemotron-3-super-120b-a12b` (configurable via `NVIDIA_MODEL`)
 
 Agents:
 
