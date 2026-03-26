@@ -118,6 +118,7 @@ Holdout pooled metrics (frozen -> LoRA):
 - Selection metric: validation `rank_ic` (best epoch: `3`)
 - Best validation loss: `0.0003303606`
 - Target: 5-day forward return
+- Futures data source: Databento dataset `GLBX.MDP3` (`CME Globex MDP 3.0`)
 - Universe: `ES, NQ, RTY, YM, ZN, ZB, CL, NG, GC, HG`
 - Shared coverage: `2017-07-09` to `2026-03-17` (`2703` daily rows)
 - Splits:
